@@ -61,7 +61,7 @@ Help2HTML=Class[{},{},{helpmsg=Help$Messages,nlabel=0,Labels,col=96,
      helpmsg[[1,1]]="Help Menu";	
      helpmsg[[1,2]]="";
      helpmsg = helpmsg[[1,4]];
-     Labels[s_]:=s;
+     Labels[s_]:=(Print["label \""//s//"\" is not defined yet"];s);
      Labels[""]="";
      outf[_]=Undefined;
      );
@@ -212,7 +212,7 @@ Help$Update,
 "</CENTER>\n\n",
 "<PRE>"//HH@WrapLine[" Please use browser's search to find out an item.\n\n\
  The FFS commands are shown in uppercases. The minimum abbreviated form of each command is enclosed in (). Each command can be shorten down to that. The optional arguments for the commands are usually shown in [].\n\
- The notation ===> reads \"equivalent to\" below.",HH@col]//"\
+",HH@col]//"\
 </PRE>\n\
 <A HREF=\"http://acc-physics.kek.jp/SAD/\">\n<H4>\n\
 <img SRC=\"SADHelp_img/SAD.jpg\" ALIGN=\"middle\" ALT=\"SAD\" WIDTH=90></A>\n\
