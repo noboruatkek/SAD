@@ -52,7 +52,6 @@ c npmax: the maximum number of photons to try
       x=1.d0
       do np=1,npmax
         if(p .le. pn)then
-c          write(*,*)'tdusr ',np,p,pn,tdusr
           return
         endif
         tdusr=tdusr+drndsr()
@@ -60,7 +59,7 @@ c          write(*,*)'tdusr ',np,p,pn,tdusr
         x=x*anp/an
         pn=pn+x*p0
         if(pn .gt. cutoff)then
-          return
+          exit
         endif
       enddo
       return
@@ -101,6 +100,50 @@ c npmax: the maximum number of photons to try
         r=tran()
         r1=r1+r*dph1
         r2=r2+r**2*dph1
+        if(pn .gt. cutoff)then
+          exit
+        endif
+      enddo
+      if(r1 .ne. 0.d0)then
+        r2=r2/r1*.5d0
+        r1=r1/dph
+      endif
+      return
+      end
+
+      subroutine tdusrnpl(anp,dph,r1,r2,an,dpr,rph)
+c
+c Same as tdusrn, with photonlist generation
+c      
+      implicit none
+      integer*4 , parameter :: npmax=10000
+      real*8 , intent(in)::anp
+      real*8 ,intent(out)::dph,an,r1,r2,dpr(npmax),rph(npmax)
+      real*8 p,p0,pn,tran,drndsr,x,r,dph1
+      real*8 , parameter :: cutoff=0.9999d0
+      integer*4 k
+      p0=exp(-anp)
+      pn=p0
+      p=tran()
+      r1=0.d0
+      r2=0.d0
+      an=0.d0
+      x=1.d0
+      dph=0.d0
+      do k=1,npmax
+        if(p .le. pn)then
+          exit
+        endif
+        an=an+1.d0
+        x=x*anp/an
+        pn=pn+x*p0
+        dph1=drndsr()
+        dph=dph+dph1
+        r=tran()
+        r1=r1+r*dph1
+        r2=r2+r**2*dph1
+        dpr(k)=dph1
+        rph(k)=r
         if(pn .gt. cutoff)then
           exit
         endif

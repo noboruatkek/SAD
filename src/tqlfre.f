@@ -1,11 +1,12 @@
       subroutine tqlfre(trans,cod,beam,al,ak,f1,f2,bz)
       use ffs_flag
       use tmacro
+      use temw,only:tmulbs
       implicit none
-      integer*4 i
-      real*8 al,ak,f1,f2,bz,af1,af2,p,a,b,ea,bzph,bp,
-     $     xf,yf,pxf,pyf,f,fdp,bb
-      real*8 trans(6,12),cod(6),beam(21),trans1(6,13)
+      real*8 ,intent(in):: al,ak,f1,f2,bz
+      real*8 af1,af2,p,a,b,ea,bzph,bp,xf,yf,pxf,pyf,f,fdp,bb
+      real*8 ,intent(inout):: trans(6,12),cod(6),beam(42)
+      real*8 trans1(6,6)
 c      write(*,*)'tflfre ',f1,f2
       af1=-ak/al*f1*abs(f1)/24.d0
       af2=ak/al*f2
@@ -45,17 +46,22 @@ c      write(*,*)'tflfre ',f1,f2
      $       -((2.d0-a)*a/ea*cod(3)-bp/ea*(2.d0-.5d0*a)*pyf)/p*pyf
      $       -(a*ea*cod(1)+bp*ea*(2.d0+a)*pxf)*trans1(2,6)
      $       +(a/ea*cod(3)+bp/ea*(2.d0-a)*pyf)*trans1(4,6))/p
-        do i=1,irad
-          trans(5,i)=trans1(5,1)*trans(1,i)+trans1(5,2)*trans(2,i)
-     $         +trans1(5,3)*trans(3,i)+trans1(5,4)*trans(4,i)
-     $         +            trans(5,i)+trans1(5,6)*trans(6,i)
-          trans(1,i)=trans1(1,1)*trans(1,i)+trans1(1,2)*trans(2,i)
-     $         +trans1(1,6)*trans(6,i)
-          trans(2,i)=trans1(2,2)*trans(2,i)+trans1(2,6)*trans(6,i)
-          trans(3,i)=trans1(3,3)*trans(3,i)+trans1(3,4)*trans(4,i)
-     $         +trans1(3,6)*trans(6,i)
-          trans(4,i)=trans1(4,4)*trans(4,i)+trans1(4,6)*trans(6,i)
-        enddo
+c        do i=1,irad
+          trans(5,1:irad)=trans1(5,1)*trans(1,1:irad)
+     $       +trans1(5,2)*trans(2,1:irad)
+     $       +trans1(5,3)*trans(3,1:irad)+trans1(5,4)*trans(4,1:irad)
+     $       +            trans(5,1:irad)+trans1(5,6)*trans(6,1:irad)
+          trans(1,1:irad)=trans1(1,1)*trans(1,1:irad)
+     $         +trans1(1,2)*trans(2,1:irad)
+     $         +trans1(1,6)*trans(6,1:irad)
+          trans(2,1:irad)=trans1(2,2)*trans(2,1:irad)
+     $         +trans1(2,6)*trans(6,1:irad)
+          trans(3,1:irad)=trans1(3,3)*trans(3,1:irad)
+     $         +trans1(3,4)*trans(4,1:irad)
+     $         +trans1(3,6)*trans(6,1:irad)
+          trans(4,1:irad)=trans1(4,4)*trans(4,1:irad)
+     $         +trans1(4,6)*trans(6,1:irad)
+c        enddo
         if(irad .gt. 6)then
           trans1(1,3)= 0.d0
           trans1(1,4)= 0.d0
@@ -81,6 +87,7 @@ c      write(*,*)'tflfre ',f1,f2
         fdp=2.d0*f*bb**2/p
         xf=(ea*cod(1)+bp*(cod(2)+bzph*cod(3)/ea-bb*cod(4)))*f
         yf=(cod(3)/ea-bp*(cod(4)-bzph*cod(1)*ea-bb*cod(2)))*f
+c cod has canonical momenta!
         pxf=(cod(2)+bzph*yf)/ea
         pyf=(cod(4)-bzph*xf)*ea
         trans1(1,1)= ea*f
@@ -131,17 +138,16 @@ c      write(*,*)'tflfre ',f1,f2
      $       +(a/ea*cod(3)+bp/ea*(2.d0-a)*pyf)*trans1(4,6))/p
         call tmultr5(trans,trans1,irad)
       endif
-      trans1(6,1)=0.d0
-      trans1(6,2)=0.d0
-      trans1(6,3)=0.d0
-      trans1(6,4)=0.d0
-      trans1(6,5)=0.d0
-      trans1(6,6)=1.d0
-      call tmulbs(beam ,trans1,.true.,.true.)
+      if(irad .gt. 6)then
+        trans1(6,1:5)=0.d0
+        trans1(6,6)=1.d0
+        call tmulbs(beam ,trans1,.true.)
+      endif
       cod(5)=cod(5)-((a*ea*cod(1)+bp*ea*(1.d0+.5d0*a)*pxf)*pxf
      $     -(a*cod(3)/ea+bp/ea*(1.d0-.5d0*a)*pyf)*pyf)/p
       cod(2)=pxf-bzph*cod(3)
       cod(4)=pyf+bzph*cod(1)
+c cod has canonical momenta!
       cod(1)=xf
       cod(3)=yf
       return

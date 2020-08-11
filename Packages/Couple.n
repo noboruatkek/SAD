@@ -3,7 +3,8 @@
 With[{r=Rule|RuleDelayed},
   SetCoupledElements:=If[Length[EVCompile[]]>0,
     ScanThread[#[#2]&,{EVSetFun,EVCompiled[[1]]}],
-    EVList={}];
+    EVList={},
+    Null];
   
   CouplingMatrix:=If[~IgnoreCouplingMatrix && Length[EVList]>0,
     Module[{var=Apply[#2[#1]&,FFS["VAR"][[,{1,2}]],{1}],m},

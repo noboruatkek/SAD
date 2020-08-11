@@ -1,9 +1,12 @@
       subroutine pgsolvcond(isp1,kx,irtc)
       use tfstk
+      use iso_c_binding
       implicit none
-      logical normalize,cond
-      integer*8 kx,ktfmaloc,k,kb,kxp,kax,kap,kbp,kc,kcp,
-     $     kd,kdp
+      logical*4 normalize,cond
+      type (sad_descriptor) kx
+      type (sad_rlist) , pointer :: kl
+      real*8, pointer:: a(:,:),b(:),c(:,:),d(:)
+      integer*8 ktfmaloc,k,kb,kap,kbp,kc,kcp,kd,kdp
       integer*4 isp1,irtc,narg,nb,mb,n,m,
      $     nc,mc,nd,md,nx,itfmessage
       real*8 eps
@@ -19,11 +22,9 @@
       normalize=.true.
       nx=0
       if(narg .ge. 3)then
-        if(ktfnonrealq(ktastk(isp1+3))) go to 99
-        eps=rtastk(isp1+3)
+        if(ktfnonrealq(ktastk(isp1+3),eps)) go to 99
         if(narg .ge. 4)then
-          if(ktfnonrealq(ktastk(isp1+4))) go to 99
-          nx=rtastk(isp1+4)
+          if(ktfnonrealq(ktastk(isp1+4),nx)) go to 99
           if(narg .ge. 5)then
             if(ktfnonrealq(ktastk(isp1+5))) go to 99
             normalize=rtastk(isp1+5) .ne. 0
@@ -35,6 +36,7 @@
           endif
         endif
       endif
+c      write(*,*)'pgsolvcond-1 ',nx,normalize,cond,eps
       if(cond)then
         kc=ktastk(isp1+6)
         kd=ktastk(isp1+7)
@@ -53,6 +55,13 @@
           call tfree(kdp)
           return
         endif
+      else
+        nc=0
+        mc=0
+        nd=0
+        md=0
+        kcp=0
+        kdp=0
       endif
       kap=ktfmaloc(k,n,m,.false.,.false.,irtc)
       if(irtc .ne. 0) then
@@ -85,18 +94,22 @@
           return
         endif
       endif
-      kax=ktavaloc(-1,m)
-      kxp=kax+1
-      call pgsolvcond1(rlist(kap),rlist(kbp),rlist(kxp),n,m,n,
-     $     rlist(kcp),rlist(kdp),nc,cond,nx,normalize,eps,
+      kx=kxavaloc(-1,m,kl)
+c      write(*,*)'pgsolvcond-3 ',m
+      call c_f_pointer(c_loc(rlist(kap)),a,[n,m])
+      call c_f_pointer(c_loc(rlist(kbp)),b,[n])
+      call c_f_pointer(c_loc(rlist(kcp)),c,[nc,m])
+      call c_f_pointer(c_loc(rlist(kdp)),d,[nc])
+      call pgsolvcond1(a,b,kl%rbody(1:m),n,m,n,
+     $     c,d,nc,cond,nx,normalize,eps,
      $     .false.)
+c      write(*,*)'pgsolvcond-4 ',nc,nx
       call tfree(kap)
       call tfree(kbp)
       if(cond)then
         call tfree(kcp)
         call tfree(kdp)
       endif
-      kx=ktflist+kax
       return
  98   print *,'irtc=',irtc
       if(cond)then
@@ -113,13 +126,14 @@ c
       use maccbk
       implicit none
       logical cond,micado,norm,svd
-      integer*4 nx,n,m,na,nc
+      integer*4,intent(in):: nx,n,m,na,nc
       real*8 a(na,m),b(n),x(m),c(nc,m),d(nc),eps
       real*8 aa(na,m),xx(m),bb(n),cc(nc,m), tt(nc),uu(nc)
       integer*4 mm(m)
       integer*4 i,j, m1
 
       micado=nx .ne. 0
+c      write(*,*)'pgsolvcond1 ',micado,cond,nc,nx
       if(cond)then
         if(micado) then
           call tmov(a,aa,na*m)

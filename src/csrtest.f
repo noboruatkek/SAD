@@ -380,6 +380,7 @@ c 32: Er -> Ey
       parameter (nphimax=16384)
       real*8 dx,dy,rho
       real*8 phix(nphimax),phiy(nphimax)
+      dx=0.d0
       if(isp .ne. isp1+1)then
         go to 9030
       endif
@@ -464,7 +465,7 @@ c 32: Er -> Ey
       do i=1,nphi
         sx=phix(i+1)-phix(i-1)
         sy=phiy(i+1)-phiy(i-1)
-        r=sqrt(sx**2+sy**2)
+        r=hypot(sx,sy)
         tx(i)=sx/r
         ty(i)=sy/r
       enddo
@@ -542,8 +543,7 @@ c 32: Er -> Ey
       end
 
       subroutine csr2dpoisson1(phix,phiy,psi,xc,yc,tx,ty,
-     $     xp1,xp2,yp1,
-     $     cs,nphi,nm)
+     $     xp1,xp2,yp1,cs,nphi,nm)
       implicit none
       integer*4 nphi,i,j,k,nv,nm
       real*8 phix(0:nphi),phiy(0:nphi),tx(nphi),ty(nphi),

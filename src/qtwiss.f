@@ -36,7 +36,7 @@
      $     pr,a,dpz,trf00,dtheta,
      $     apsi1,apsi2,sspc0,sspc,vcalpha0,fb1,fb2,
      $     ak1,ftable(4),dir
-      logical*4 over,coup,normal,mat,calpol0,insmat,err,seg
+      logical*4 over,coup,normal,mat,calpol0,insmat,err,seg,wspaccheck
       real*8 a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,
      $     a34,a41,a42,a43,a44,a15,a25,a35,a45
       real*8 u11,u12,u13,u14,u21,u22,u23,u24,u31,u32,u33,
@@ -69,7 +69,10 @@ c     begin initialize for preventing compiler warning
       by0=0.d0
       rr=0.d0
 c     end   initialize for preventing compiler warning
-      call wspaccheck
+      if(wspaccheck())then
+        over=.true.
+        return
+      endif
       call tclrfpe
       irad=6
       trf00=trf0
@@ -114,6 +117,10 @@ c     end   initialize for preventing compiler warning
         ntfun=mfitdetr
       endif
       do l=la+1,lb
+c        call tfmemcheckprint1('qtwiss',l,.false.)
+c        if(mod(l,1000) .eq. 0)then
+c          write(*,*)'qtwiss1 ',l,la,lb
+c        endif
         l1=l-1
         ip1=ip0+l1
         ip=ip1+1
@@ -122,6 +129,10 @@ c     end   initialize for preventing compiler warning
           cod=twiss(ip1,mfitdx:mfitddp)
           call tesetdv(cod(6))
         endif
+c        if(l .gt. 20200 .and. l .lt. 20300)then
+c        if(l .gt. 20200 .and. mod(l,100) .eq. 0)then
+c          write(*,'(a,2i5,1p6g15.7)')'qtwiss1 ',l,ltyp,cod
+c        endif
         if(ltyp .gt. icMARK)then
           if(.not. mat)then
             twiss(ip,1:ntfun)=twiss(ip1,1:ntfun)
@@ -161,7 +172,9 @@ c     end   initialize for preventing compiler warning
               enddo
               ip1=ip0+la
  12           continue
-              forall(k=1:ntfun)twiss(ip1+1:ip0+lb,k)=twiss(ip1,k)
+              do concurrent (k=1:ntfun)
+                twiss(ip1+1:ip0+lb,k)=twiss(ip1,k)
+              enddo
               over=.true.
               go to 9000
             endif
@@ -191,14 +204,6 @@ c          endif
             go to 1010
           endif
           dir=direlc(l1)
-c          go to (
-c     $         1100,1200,1010,1400,1010,1600,1010,1600,1010,1600,
-c     1         1010,1600,1010,1010,1010,1010,1010,1010,1010,2000,
-c     1         2100,2200,1010,1010,1010,1010,1010,1010,1010,3000,
-c     1         3100,3200,3300,3400,3500,1010,1010,1010,1010,1010,
-c     $         4100),
-c     1      ltyp
-c          go to 1010
           select case (ltyp)
 
           case (icDRFT)
@@ -295,7 +300,7 @@ c          go to 1010
               mfr=mfr*(11+mfr*(2*mfr-9))/2
             endif
             ak1=cmp%value(ky_K1_QUAD)
-            call tsetfringepe(cmp,icQUAD,dir,ftable)
+            call tsetfringepe(cmp,icQUAD,ftable)
             call qquad(trans,cod,al,
      1           ak1,cmp%value(ky_DX_QUAD),cmp%value(ky_DY_QUAD),
      1           cmp%value(ky_ROT_QUAD),
@@ -416,7 +421,8 @@ c     $             kxx,irtc)
  20       if(wspac)then
             sspc=(rlist(ifpos+l1)+rlist(ifpos+l1-1))*.5d0
             call qwspac(trans,cod,sspc-sspc0,
-     $           rlist(ifsize+(l1-1)*21),coup)
+     $           rlist(ifsize+(l1-1)*21),coup,l1)
+c            write(*,*)'qtwiss-qwsapc ',l1,ifsize,rlist(ifsize+(l1-1)*21)
             sspc0=sspc
             coup=.true.
           endif
@@ -491,9 +497,6 @@ c     $             kxx,irtc)
             endif
           else
             call qmat2twiss(trans,ip,l,twiss,dpsix,dpsiy,coup,normal)
-c        if(ktfenanq(twiss(ip,mfitbx)))then
-c          write(*,*)'qtwiss-qmat ',l,ip,ltyp,trans(1,2)
-c        endif
           endif
           if(.not. mat)then
             if(orbitcal)then
@@ -504,6 +507,7 @@ c        endif
           endif
         endif
  10     continue
+        call limitcod(cod)
       enddo
  9000 calpol=calpol0
       trf0=trf00
@@ -807,6 +811,7 @@ c      write(*,*)'qtrans ',la,lb,la1,lb1,fra,frb
       use ffs
       use ffs_pointer
       use tffitcode
+      use iso_c_binding
       implicit none
       type (ffs_bound) fbound
       real*8 conv,cx,sx,ax,bx,cy,sy,ay,by,r0,dcod(6)
@@ -815,6 +820,7 @@ c      write(*,*)'qtrans ',la,lb,la1,lb1,fra,frb
      $     factmin=1.d-3
       integer*4 idp,it
       real*8 r,fact
+      real*8 , pointer :: ptwiss(:,:)
       real*8 trans(4,5),cod(6),cod0(6),trans1(4,5),transb(4,5),
      $     transe(4,5),ftwiss(ntwissfun),trans2(4,5),cod00(6)
       logical*4 over,codfnd,stab
@@ -824,12 +830,14 @@ c      write(*,*)'qtrans ',la,lb,la1,lb1,fra,frb
       fact=.5d0
       conv=min(conv1,conv0*(1.d0+(cod0(6)/0.001d0)**2))
       stab=.false.
+      call c_f_pointer(c_loc(rlist(iftwis)),
+     $     ptwiss,[nlat*(2*ndim+1),ntwissfun])
       do while(it .le. itmax)
         cod=cod0
         if(fbound%fb .gt. 0.d0)then
           call qtwissfrac1(ftwiss,transb,cod,idp,
      $         fbound%lb,fbound%fb,1.d0,.true.,.true.,over)
-          call qtwiss1(rlist(iftwis),idp,fbound%lb+1,fbound%le,
+          call qtwiss1(ptwiss,idp,fbound%lb+1,fbound%le,
      $         trans1,cod,.true.,over)
 c          do i=1,5
             trans2(1,1:5)=
@@ -847,7 +855,7 @@ c          do i=1,5
 c          enddo
           trans2(:,5)=trans2(:,5)+trans1(:,5)
         else
-          call qtwiss1(rlist(iftwis),idp,fbound%lb,fbound%le,
+          call qtwiss1(ptwiss,idp,fbound%lb,fbound%le,
      $         trans2,cod,.true.,over)
         endif
         if(fbound%fe .gt. 0.d0)then
@@ -872,10 +880,10 @@ c          enddo
           trans=trans2
         endif
         call resetnan(cod,1.d300)
-c        write(*,'(a,1p6g15.7)')'qcod ',cod
         if(.not. orbitcal)then
           codfnd=.true.
         endif
+c        write(*,'(a,2l3,1p6g15.7)')'qcod ',codfnd,over,cod
         if(codfnd)then
           cod0=cod
           return
@@ -956,18 +964,36 @@ c        write(*,'(a,i5,1p7g14.6)')'qcod ',it,r,r0,fact,cod0(1:4)
       end
 
       subroutine qtwissfrac(ftwiss,l,fr,over)
+      use ffs
+      implicit none
+      integer*4 , intent(in)::l
+      real*8 , intent(out)::ftwiss(ntwissfun)
+      real*8 , intent(in)::fr
+      real*8 gv(3,4)
+      logical*4 , intent(out)::over
+      call qtwissfracgeo(ftwiss,gv,l,fr,.false.,over)
+      return
+      end
+
+      subroutine qtwissfracgeo(ftwiss,gv,l,fr,cgeo,over)
       use tfstk
       use ffs
       use ffs_pointer
       use tffitcode
-      use temw, only:etwiss2ri,tfetwiss
+      use temw, only:etwiss2ri,tfetwiss,tinv6,iaez
+      use geolib
       implicit none
       type (sad_descriptor) dsave(kwMAX)
       type (sad_comp) , pointer :: cmp
-      integer*4 l,nvar,le,itfdownlevel,irtc
-      real*8 fr,ftwiss(ntwissfun),trans(6,6),cod(6),gr,sgr,sgr2,gr1,
-     $     tw1(ntwissfun),ri(6,6),beam(21),srot(3,9)
-      logical*4 over,sol,rt,chg,cp0,normal
+      integer*4 , intent(in)::l
+      integer*4 nvar,le,itfdownlevel,irtc
+      real*8 , intent(in)::fr
+      real*8 , intent(out)::ftwiss(ntwissfun),gv(3,4)
+      real*8 trans(6,6),cod(6),gr,sgr,sgr2,gr1,
+     $     tw1(ntwissfun),beam(21),srot(3,9)
+      logical*4 , intent(in)::cgeo
+      logical*4 , intent(out)::over
+      logical*4 sol,rt,chg,cp0,normal
       if(calc6d)then
         cp0=codplt
         codplt=.false.
@@ -983,11 +1009,13 @@ c        write(*,'(a,i5,1p7g14.6)')'qcod ',it,r,r0,fact,cod0(1:4)
         else
           tw1=twiss(l,0,1:ntwissfun)
           cod=tw1(mfitdx:mfitddp)
-          call etwiss2ri(tw1,ri,normal)
-          call tinv6(ri,trans)
+          trans=tinv6(etwiss2ri(tw1,normal))
           call tturne1(trans,cod,beam,srot,
-     $         int8(0),int8(0),int8(0),0,
+     $         iaez,0,
      $         .false.,sol,rt,.true.,l,l)
+        endif
+        if(cgeo)then
+          gv=tfgeo1s(l)
         endif
         if(chg)then
           call qfracsave(l,dsave,nvar,.false.)
@@ -1010,8 +1038,8 @@ c        write(*,'(a,i5,1p7g14.6)')'qcod ',it,r,r0,fact,cod0(1:4)
 c          write(*,'(a,1p8g15.7)')'qtwissfrac ',fr,sgr2,cod
         endif
 c        write(*,'(1p6g15.7)')(trans(i,1:6),i=1,6)
-        call tinv6(trans,ri)
-        call tfetwiss(ri,cod,ftwiss,normal)
+c        call tinv6(trans,ri)
+        ftwiss=tfetwiss(tinv6(trans),cod,normal)
         ftwiss(mfitnx)=ftwiss(mfitnx)+twiss(l,0,mfitnx)
         ftwiss(mfitny)=ftwiss(mfitny)+twiss(l,0,mfitny)
         ftwiss(mfitnz)=ftwiss(mfitnz)+twiss(l,0,mfitnz)
@@ -1019,25 +1047,44 @@ c        write(*,'(a,i5,1p8g14.6)')'qtwissfrac ',l,fr,gr,ftwiss(1:mfitny)
         over=.false.
         codplt=cp0
       else
-        call qtwissfrac1(ftwiss,trans,cod,
-     $       0,l,0.d0,fr,.false.,.false.,over)
+        call qtwissfrac1geo(ftwiss,gv,trans,cod,
+     $       0,l,0.d0,fr,.false.,.true.,.false.,over)
       endif
       return
       end
 
       subroutine qtwissfrac1(ftwiss,
      $     trans,cod,idp,l,fr1,fr2,mat,force,over)
+      use ffs
+      implicit none
+      integer*4 idp,l
+      real*8 , intent(out)::ftwiss(ntwissfun)
+      real*8 gv(3,4),trans(4,5),cod(6),fr1,fr2
+      logical*4 over,mat,force
+      call qtwissfrac1geo(ftwiss,gv,
+     $     trans,cod,idp,l,fr1,fr2,mat,.false.,force,over)
+      return
+      end
+
+      subroutine qtwissfrac1geo(ftwiss,gv,
+     $     trans,cod,idp,l,fr1,fr2,mat,cgeo,force,over)
       use tfstk
       use ffs
       use ffs_pointer
       use tffitcode
+      use geolib, only:tfgeo1s
       implicit none
       type (sad_descriptor) dsave(kwMAX)
       type (sad_comp) ,pointer :: cmp,cmp0
-      integer*4 idp,l,nvar,le,itfdownlevel,irtc
-      real*8 twisss(ntwissfun),ftwiss(ntwissfun),
-     $     trans(4,5),cod(6),fr1,fr2,gb0,gb1,dgb
-      logical*4 over,chg,mat,force
+      integer*4 ,intent(in):: idp,l
+      integer*4 nvar,le,itfdownlevel,irtc
+      real*8 , intent(out)::ftwiss(ntwissfun),gv(3,4),
+     $     trans(4,5),cod(6)
+      real*8 ,intent(in):: fr1,fr2
+      real*8 twisss(ntwissfun),gb0,gb1,dgb
+      logical*4 , intent(in):: mat,force,cgeo
+      logical*4 , intent(out):: over
+      logical*4 chg
       levele=levele+1
       call qfracsave(l,dsave,nvar,.true.)
       call compelc(l,cmp)
@@ -1067,6 +1114,9 @@ c        write(*,'(a,i5,1p8g14.6)')'qtwissfrac ',l,fr,gr,ftwiss(1:mfitny)
         endif
         gammab(l)=gb0
         gammab(l+1)=gb1
+        if(cgeo)then
+          gv=tfgeo1s(l)
+        endif
         if(chg)then
           call qfracsave(l,dsave,nvar,.false.)
         endif
@@ -1136,10 +1186,6 @@ c        write(*,'(a,i5,1p8g14.6)')'qtwissfrac ',l,fr,gr,ftwiss(1:mfitny)
         f2=0.d0
       endif
       lt=idtype(cmp%id)
-c      go to (1100,1200,1010,1400,1010,1600,1010,1600,1010,1600,
-c     1       1010,1600,1010,1010,1010,1010,1010,1010,1010,1010,
-c     1       1600,2200,1010,1010,1010,1010,1010,1010,1010,1010,
-c     1       3100,3200),lt
       select case (lt)
 
       case (icDRFT)
@@ -1151,7 +1197,8 @@ c     1       3100,3200),lt
         endif
         cmp%value(ky_FRMD_BEND)=-f1-2.d0*f2
         if(r .ne. 0.d0)then
-          if(cmp%orient .gt. 0.d0)then
+c          if(cmp%orient .gt. 0.d0)then
+          if(cmp%ori)then
             cmp%value(ky_E1_BEND)=
      $           cmp%value(ky_E1_BEND)*f1/r
             cmp%value(ky_E2_BEND)=
@@ -1200,7 +1247,7 @@ c     $     cmp%value(ky_K0_BEND)
             cmp%value(ky_FB2_MULT)=0.d0
           endif
           cmp%value(ky_FRMD_BEND)=-f1-2.d0*f2
-          if(cmp%orient .gt. 0.d0)then
+          if(cmp%ori)then
             cmp%value(ky_E1_MULT)=
      $           cmp%value(ky_E1_MULT)*f1/r
             cmp%value(ky_E2_MULT)=
@@ -1246,7 +1293,7 @@ c     $     cmp%value(ky_K0_BEND)
       endif
       cmp%value(kytbl(kwFRMD,lt))=0.d0
       if(f1 .ne. 0.d0)then
-        if(cmp%orient .gt. 0.d0)then
+        if(cmp%ori)then
           if(fr0 .eq. 3.d0 .or. fr0 .eq. 1.d0)then
             cmp%value(kytbl(kwFRMD,lt))=1.d0
           endif
@@ -1257,7 +1304,7 @@ c     $     cmp%value(ky_K0_BEND)
         endif
       endif
       if(f2 .ne. 0.d0)then
-        if(cmp%orient .gt. 0.d0)then
+        if(cmp%ori)then
           if(fr0 .eq. 3.d0 .or. fr0 .eq. 2.d0)then
             cmp%value(kytbl(kwFRMD,lt))=cmp%value(kytbl(kwFRMD,lt))+2.d0
           endif
@@ -1275,7 +1322,7 @@ c     $     cmp%value(ky_K0_BEND)
       endif
       chg=.true.
       if(.not. ideal)then
-        cmp%update=iand(cmp%update,2)
+        cmp%update=cmp%nparam .le. 0
       endif
       return
       end
@@ -1326,15 +1373,11 @@ c     $     cmp%value(ky_K0_BEND)
         i2=1
         go to 100
       endif
-      al=kl%rbody(1)
-      do i=2,n
-        al=al+kl%rbody(i)
-      enddo
-      al=al*al0
+      al=sum(kl%rbody(1:n))*al0
       al1=al*fr1
       al2=al*fr2
       s=0.d0
-      if(cmp%orient .gt. 0.d0)then
+      if(cmp%ori)then
         j1=1
         j2=n
         js=1
@@ -1445,7 +1488,8 @@ c fringes are not taken into account yet...
       enddo
       chg=.true.
       if(.not. ideal)then
-        cmp%update=2
+        cmp%update=.false.
+        cmp%updateseg=.true.
       endif
       return
       end
@@ -1495,7 +1539,7 @@ c        write(*,'(a,3i5,1p2g15.7)')'qputfracseg ',k,i1,i,r,lkv0%rbody(i)
       call descr_sad(lsegp%dbody(1),lal)
       call descr_sad(lal%dbody(2),lak)
       nseg=lak%nl
-      if(cmp%orient .gt. 0.d0)then
+      if(cmp%ori)then
         i1=1
         i2=nseg
         istep=1
@@ -1546,7 +1590,7 @@ c        write(*,'(a,3i5,1p2g15.7)')'qputfracseg ',k,i1,i,r,lkv0%rbody(i)
       al=cmp%value(ky_L_MULT)
       phi=cmp%value(ky_ANGL_MULT)
       mfr=nint(cmp%value(ky_FRMD_MULT))
-      if(cmp%orient .ge. 0.d0)then
+      if(cmp%ori)then
         psi1=cmp%value(ky_E1_MULT)
         psi2=cmp%value(ky_E2_MULT)
         apsi1=cmp%value(ky_AE1_MULT)
@@ -1566,7 +1610,7 @@ c        write(*,'(a,3i5,1p2g15.7)')'qputfracseg ',k,i1,i,r,lkv0%rbody(i)
         chi1m=-cmp%value(ky_CHI1_MULT)
         chi2m=-cmp%value(ky_CHI2_MULT)
       endif
-      call tsetfringepe(cmp,icMULT,cmp%orient,ftable)
+      call tsetfringepe(cmp,icMULT,ftable)
       call qmult(trans,cod,l1,al,
      $     cmp%value(ky_K0_MULT),bz,
      $     phi,psi1,psi2,apsi1,apsi2,
@@ -1585,5 +1629,39 @@ c        write(*,'(a,3i5,1p2g15.7)')'qputfracseg ',k,i1,i,r,lkv0%rbody(i)
      $     cmp%value(ky_W1_MULT),
      $     cmp%value(ky_APHI_MULT) .ne. 0.d0,ini,
      $     coup)
+      return
+      end
+
+      subroutine qthin(trans,cod,nord,al,ak,
+     1                 dx,dy,theta,coup)
+      implicit none
+      integer*4 nord
+      real*8 trans(4,5),cod(6),transe(6,12),beam(42),srot(3,9),
+     $     dx,dy,theta,ak,al
+      logical*4 coup
+      call tinitr(transe)
+      call tthine(transe,cod,beam,srot,nord,al,ak,
+     1     dx,dy,theta,.false.,1)
+      call qcopymat(trans,transe,.false.)
+      coup=trans(1,3) .ne. 0.d0 .or. trans(1,4) .ne. 0.d0 .or.
+     $     trans(2,3) .ne. 0.d0 .or. trans(2,4) .ne. 0.d0
+      return
+      end
+
+      subroutine qquad(trans,cod,al,ak,
+     1dx,dy,theta,fringe,f1in,f2in,f1out,f2out,mfring,eps0,
+     $     kin,achro,coup)
+      implicit none
+      integer*4 mfring
+      real*8 trans(4,5),cod(6),transe(6,12),beam(42),srot(3,9),
+     $     dx,dy,theta,ak,eps0,al,f1in,f2in,f1out,f2out
+      logical*4 fringe,coup,kin,achro
+      call tinitr(transe)
+      call tquade(transe,cod,beam,srot,al,ak,0.d0,
+     1     dx,dy,theta,.false.,fringe,f1in,f2in,f1out,f2out,mfring,eps0,
+     $     kin,achro,.false.)
+      call qcopymat(trans,transe,.false.)
+      coup=trans(1,3) .ne. 0.d0 .or. trans(1,4) .ne. 0.d0 .or.
+     $     trans(2,3) .ne. 0.d0 .or. trans(2,4) .ne. 0.d0
       return
       end

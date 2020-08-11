@@ -8,7 +8,7 @@
 </H2></CENTER>
 <A HREF="http://acc-physics.kek.jp/SAD/">
 <H4>
-<img SRC="../sad.png" ALIGN="middle" ALT="SAD" WIDTH=45></A>
+<IMG SRC="../sad.png" ALIGN="middle" ALT="SAD" WIDTH=45></A>
 Back to SAD Home Page</H4>
 <A HREF="../SADHelp.html">
 <H4>
@@ -40,7 +40,7 @@ ON ECHO;OFF CTIME;
         QRD    = (L = 1 K1 = -0.1 )
  ; 
  SEXT   SF     =(L = 1 K2 = 0.1)
-        SD     =(L = 1 K2 = -0.1)
+        SD     =(L = 1 K2 = -0.2)
  ;
  MARK   IP1     =(BETAX = 10   BETAY =10    EMIX = 4.0E-7
            EMIY = 4.0E-7  DP = 0.01 )
@@ -77,7 +77,8 @@ ON ECHO;OFF CTIME;
                     ! variable
   GO;               ! start matching
 !                     define dr as the drawing command (needs X-Window)
-  dr:=FFS["OUT 'a' DRAW BX BY & EX EY {BQ}*; TERM OUT; TDR 'a';"];
+!  dr:=FFS["OUT 'a' DRAW BX BY & EX EY {BQ}*; TERM OUT; TDR 'a';"];
+  dr:=FFS["DRAW BX BY & EX EY {BQ}*;"];
   dr;               ! draw optics of unit cell
   SAVE;             ! save the matching result (values of QF, QD) to
                     ! keep them after swtch the beam line.
@@ -112,7 +113,7 @@ ON ECHO;OFF CTIME;
   hring=BeamLine[IP1,-supp,Rest[ncell*Rest[unitcell]],supp];
   USE Join[hring,-hring]; ! switch to full ring
   CELL;             ! now periodic condition again
-  CAL NX NY;        ! set to display NX and NY after CAL
+!  CAL NX NY;        ! set to display NX and NY after CAL (default)
   CAL               ! calculate the optics of ring
   dr;               ! draw ring
   Print[TimeUsed[]];! CPU Time used so far.

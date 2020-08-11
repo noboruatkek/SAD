@@ -3,11 +3,13 @@ c     Peek/Get word from input buffer with case preserving
       use ffs_flag
       use tfcsi
       implicit none
-      character*(*) outstr
-      integer*4 next,is,notany,ifany
+      character*(*) ,intent(out):: outstr
+      integer*4 ,intent(out):: next
+      integer*4 is,notany,ifany
       next=ipoint
       peekwd0=0
-      if(ipoint .gt. lrecl)then
+c      write(*,*)'peekwd0 ',lfni,ipoint,lrecl,ios
+      if(ipoint .gt. lrecl .or. ipoint .lt. 1)then
         outstr=' '
         return
       endif
@@ -18,11 +20,20 @@ c     Peek/Get word from input buffer with case preserving
           next=is
           outstr=' '
           return
+        elseif(is .eq. lrecl)then
+          next=lrecl+1
+          outstr=buffer(ipoint:is)
+          peekwd0=is-ipoint+1
+          return
         endif
+      else
+        next=lrecl+1
+        outstr=' '
+        return
       endif
       next=ifany(buffer(1:lrecl),delim(1:ldel),is+1)
       if(next .le. 0)then
-        next=lrecl
+        next=lrecl+1
       endif
       outstr=buffer(is:next-1)
       peekwd0=next-is
@@ -32,9 +43,10 @@ c     Peek/Get word from input buffer with case preserving
       integer*4 function getwdl0(outstr)
       use tfcsi
       implicit none
-      character*(*) outstr
+      character*(*) ,intent(out):: outstr
       integer*4 next,peekwd0
       getwdl0=peekwd0(outstr,next)
+c      write(*,*)'getwdl0 ',next,ipoint,lrecl
       call cssetp(next)
       return
       end
@@ -42,11 +54,11 @@ c     Peek/Get word from input buffer with case preserving
       integer*4 function getwrd0(outstr)
       use tfcsi
       implicit none
-      character*(*) outstr
+      character*(*) ,intent(out):: outstr
       integer*4 getwdl0
  1    getwrd0=getwdl0(outstr)
       if(outstr(1:1) .eq. ' ')then
-        call skipln
+        call skiplnget
         if(icsstat() .ne. 0)then
           outstr=' '
           return
@@ -58,12 +70,12 @@ c     Peek/Get word from input buffer with case preserving
 
 c     Peek/Get word from input buffer with case normalization
       subroutine peekwd(outstr,next)
-      use tfstk
       use ffs_flag
       use tmacro
       implicit none
-      character*(*) outstr
-      integer*4 next,l,peekwd0
+      character*(*) ,intent(out):: outstr
+      integer*4 ,intent(out):: next
+      integer*4 l,peekwd0
       l=peekwd0(outstr,next)
       if(convcase .and. l .gt. 0)then
         call capita1(outstr(1:min(len(outstr),l)))
@@ -72,11 +84,10 @@ c     Peek/Get word from input buffer with case normalization
       end
 
       subroutine getwdl(outstr)
-      use tfstk
       use ffs_flag
       use tmacro
       implicit none
-      character*(*) outstr
+      character*(*) ,intent(out):: outstr
       integer*4 l,getwdl0
       l=getwdl0(outstr)
       if(convcase .and. l .gt. 0)then
@@ -86,27 +97,27 @@ c     Peek/Get word from input buffer with case normalization
       end
 
       subroutine getwrd(outstr)
-            use tfstk
       use ffs_flag
       use tmacro
       implicit none
-      character*(*) outstr
+      character*(*) ,intent(out):: outstr
       integer*4 l,getwrd0
       l=getwrd0(outstr)
       if(convcase .and. l .gt. 0)then
         call capita1(outstr(1:min(len(outstr),l)))
       endif
+c      write(*,*)'getwrd ',outstr(1:min(len(outstr),l))
       return
       end
 
 c     Peek/Get word from input buffer with case preserving by preservecase
       subroutine peekwdp(outstr,next)
-      use tfstk
       use ffs_flag
       use tmacro
       implicit none
-      character*(*) outstr
-      integer*4 next,l,peekwd0
+      character*(*) ,intent(out):: outstr
+      integer*4 ,intent(out):: next
+      integer*4 l,peekwd0
       l=peekwd0(outstr,next)
       if(convcase .and. .not. preservecase .and. l .gt. 0)then
         call capita1(outstr(1:min(len(outstr),l)))
@@ -115,11 +126,10 @@ c     Peek/Get word from input buffer with case preserving by preservecase
       end
 
       subroutine getwdlp(outstr)
-      use tfstk
       use ffs_flag
       use tmacro
       implicit none
-      character*(*) outstr
+      character*(*) ,intent(out):: outstr
       integer*4 l,getwdl0
       l=getwdl0(outstr)
       if(convcase .and. .not. preservecase .and. l .gt. 0)then
@@ -129,11 +139,10 @@ c     Peek/Get word from input buffer with case preserving by preservecase
       end
 
       subroutine getwrdp(outstr)
-            use tfstk
       use ffs_flag
       use tmacro
       implicit none
-      character*(*) outstr
+      character*(*) ,intent(out):: outstr
       integer*4 l,getwrd0
       l=getwrd0(outstr)
       if(convcase .and. .not. preservecase .and. l .gt. 0)then
@@ -146,12 +155,12 @@ c     Peek/Get word from input buffer with case normalization/preserved
 c     1st arg(outstr)	case normalized word
 c     2nd arg(outstrp)	case preserved word by preservecase flag
       subroutine peekwd2(outstr,outstrp,next)
-            use tfstk
       use ffs_flag
       use tmacro
       implicit none
-      character*(*) outstr,outstrp
-      integer*4 next,l,peekwd0
+      character*(*) ,intent(out):: outstr,outstrp
+      integer*4 ,intent(out):: next
+      integer*4 l,peekwd0
       l=peekwd0(outstrp,next)
       if(l .lt. 1)then
         outstr=' '
@@ -172,11 +181,10 @@ c     2nd arg(outstrp)	case preserved word by preservecase flag
       end
 
       subroutine getwdl2(outstr,outstrp)
-            use tfstk
       use ffs_flag
       use tmacro
       implicit none
-      character*(*) outstr,outstrp
+      character*(*) ,intent(out):: outstr,outstrp
       integer*4 l,getwdl0
       l=getwdl0(outstrp)
       if(l .lt. 1)then
@@ -198,11 +206,10 @@ c     2nd arg(outstrp)	case preserved word by preservecase flag
       end
 
       subroutine getwrd2(outstr,outstrp)
-            use tfstk
       use ffs_flag
       use tmacro
       implicit none
-      character*(*) outstr,outstrp
+      character*(*) ,intent(out):: outstr,outstrp
       integer*4 l,getwrd0
       l=getwrd0(outstrp)
       if(l .lt. 1)then
@@ -225,12 +232,12 @@ c     2nd arg(outstrp)	case preserved word by preservecase flag
 
 c     Peek character from input buffer with case normalization
       character function peekch(next)
-      use tfstk
       use ffs_flag
       use tmacro
       use tfcsi
       implicit none
-      integer*4 next,notspace
+      integer*4 ,intent(out):: next
+      integer*4 notspace
       next=ipoint
       if(ipoint .ge. lrecl)then
         peekch=' '
@@ -253,14 +260,13 @@ c     Peek character from input buffer with case normalization
       return
       end
 
-      subroutine skipln
-      use ffs_flag
+      subroutine skiplnget
       use tfcsi
       implicit none
       integer*4 ifany,is
-      if(ipoint .gt. 0)then
+      if(ipoint .ge. ipbase .and. ipoint .le. lrecl)then
         is=ifany(buffer(1:lrecl),delim(1:2),ipoint)
-        if(is .gt. 1 .and. is .lt. lrecl)then
+        if(is .ge. ipoint .and. is .lt. lrecl)then
           ipoint=is+1
         else
           ipoint=lrecl+1
@@ -273,32 +279,29 @@ c     Peek character from input buffer with case normalization
       return
       end
 
-      subroutine csrst(lfn0)
-      use tfcsi
-      implicit none
-      integer*4 lfn0
-      lfn1=lfn0
-      call skipline
-      call cssets(0)
-      return
-      end
-
       subroutine skipline
       use tfcsi
       implicit none
       integer*4 ipoint1,ifchar
       if(ipoint .ge. lrecl)then
         ipoint=lrecl+1
-        buffer(lrecl:lrecl)=char(10)
       else
         ipoint1=ifchar(buffer(1:lrecl),char(10),ipoint)+1
         if(ipoint1 .le. 1)then
-          write(*,*)'Buffer is damaged. point= ',ipoint,' total= ',lrecl
-          buffer(lrecl:lrecl)=char(10)
           ipoint=lrecl+1
         else
           ipoint=ipoint1
         endif
       endif
+      return
+      end
+
+      subroutine csrst(lfn0)
+      use tfcsi
+      implicit none
+      integer*4 lfn0
+      lfn1=lfn0
+      call skipline
+      ios=0
       return
       end

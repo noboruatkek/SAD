@@ -1,5 +1,7 @@
       subroutine temap(np,np0,x,px,y,py,z,g,dv,l,nt,kptbl)
       use tfstk
+      use efun
+      use temw, only:tmulbs
       implicit none
       type alist
         type (sad_rlist), pointer :: p
@@ -61,7 +63,7 @@
           kav(7)%p%rbody(i)=1.d0
         endif
       enddo
-      call tfefunref(isp0+1,kx,.false.,irtc)
+      kx=tfefunref(isp0+1,.false.,irtc)
       if(irtc .ne. 0)then
         levele=itfdownlevel()
         isp=isp0
@@ -188,14 +190,20 @@ c        call tfdebugprint(kx,'temap',1)
       subroutine temape(trans,cod,beam,l)
       use tfstk
       use tmacro
+      use sad_main, only:iaidx
+      use temw,only:tmulbs
+      use efun
+      use iso_c_binding
       implicit none
-      integer*8 kx,k1,k2,k3,k4,kax,
+      type (sad_descriptor) kx
+      integer*8 k1,k2,k3,k4,kax,
      $     ktfmalocp,ka1,kat1,kbm,krt
-      integer*4 l,isp0,itfdownlevel,n,m,irtc,i,j,ia
-      real*8 trans(6,12),cod(6),beam(42)
+      integer*4 l,isp0,itfdownlevel,n,m,irtc,i,j
+      real*8 trans(6,6),cod(6),beam(42)
+      real*8 ,pointer::trat1(:,:)
       character*2 ord
       integer*8 , save :: ifv=0,iem=0
-      ia(m,n)=((m+n+abs(m-n))**2+2*(m+n)-6*abs(m-n))/8
+c      iaidx(m,n)=((m+n+abs(m-n))**2+2*(m+n)-6*abs(m-n))/8
       if(iem .eq. 0)then
         iem=ktfsymbolz('ExternalMap',11)
         ifv=ktsalocb(0,'EMIT',4)
@@ -210,7 +218,7 @@ c        call tfdebugprint(kx,'temap',1)
       rtastk(isp)=l
       isp=isp+1
       dtastk(isp)=kxm2l(cod,0,6,1,.false.)
-      call tfefunref(isp0+1,kx,.false.,irtc)
+      kx=tfefunref(isp0+1,.false.,irtc)
       if(irtc .ne. 0)then
         levele=itfdownlevel()
         if(ierrorprint .ne. 0)then
@@ -248,6 +256,7 @@ c        call tfdebugprint(kx,'temap',1)
         call tfree(kat1)
         go to 9100
       endif
+      call c_f_pointer(c_loc(rlist(kat1)),trat1,[6,6])
       kbm=0
       krt=0
       if(ilist(2,kax-1) .ne. 2)then
@@ -273,22 +282,22 @@ c        call tfdebugprint(kx,'temap',1)
           go to 9100
         endif
       endif
-      call tmultr(trans,rlist(kat1),irad)
+      call tmultr(trans,trat1,irad)
       if(kbm .ne. 0)then
         do i=0,35
           rlist(kat1+i)=rlist(kat1+i)+rlist(krt+i)
         enddo
-        call tmulbs(beam,rlist(kat1),.false.,.true.)
+        call tmulbs(beam,trat1,.true.)
         do i=1,6
           do j=i,6
-            beam(ia(i,j))=beam(ia(i,j))+rlist(kbm+(j-1)*6+i-1)
+            beam(iaidx(i,j))=beam(iaidx(i,j))+rlist(kbm+(j-1)*6+i-1)
           enddo
         enddo
         call tmuld6(trans,rlist(krt))
         call tfree(kbm)
         call tfree(krt)
       else
-        call tmulbs(beam,rlist(kat1),.false.,.true.)
+        call tmulbs(beam,trat1,.true.)
       endif
       call tfree(kat1)
  9000 levele=itfdownlevel()
@@ -308,6 +317,7 @@ c        call tfdebugprint(kx,'temap',1)
       subroutine qemap(trans,cod,l,coup,err)
       use tfstk
       use tmacro
+      use efun
       implicit none
       type (sad_descriptor) :: kx
       type (sad_dlist), pointer :: kxl, k2l
@@ -334,7 +344,7 @@ c      iat=itfm2l(cod,0,6,1,.false.)
       isp=isp+1
       dtastk(isp)=kxm2l(cod,0,6,1,.false.)
 c      itastk(2,isp)=iat
-      call tfefunref(isp0+1,kx,.false.,irtc)
+      kx=tfefunref(isp0+1,.false.,irtc)
       if(irtc .ne. 0)then
         levele=itfdownlevel()
         if(ierrorprint .ne. 0)then
@@ -383,8 +393,11 @@ c      itastk(2,isp)=iat
       use tfstk
       use ffs_pointer
       use tmacro
+      use geolib
+      use efun
       implicit none
-      integer*8 ktfgeol,kx,kax,k1,k2,k11,k12,ka1,ka11,ka12,kdb
+      type (sad_descriptor) kx
+      integer*8 ktfgeol,kax,k1,k2,k11,k12,ka1,ka11,ka12,kdb
       integer*4 l,isp0,irtc,itfdownlevel
       real*8 rfromk
       character*2 ord
@@ -411,7 +424,7 @@ c      iat=itfm2l(cod,0,6,1,.false.)
 c      ktastk(isp)=ktflist+ktfgeol(geo(1,1,l))
       isp=isp+1
       rtastk(isp)=pos(l)
-      call tfefunref(isp0+1,kx,.false.,irtc)
+      kx=tfefunref(isp0+1,.false.,irtc)
       if(irtc .ne. 0)then
         levele=itfdownlevel()
         if(ierrorprint .ne. 0)then
@@ -462,13 +475,13 @@ c      ktastk(isp)=ktflist+ktfgeol(geo(1,1,l))
         go to 9100
       endif
       call tmov(rlist(ka11+1),geo(1,4,l+1),3)
-      call tfchi2geo(rlist(ka12+1),rlist(ka12+2),rlist(ka12+3),
-     $     geo(1,1,l+1))
+      geo(:,:,l+1)=tfchitogeo(rlist(ka12+1:ka12+3))
       pos(l+1)=rfromk(k2)
       levele=itfdownlevel()
       isp=isp0
       return
- 9000 call tmov(geo(1,1,l),geo(1,1,l+1),12)
+ 9000 geo(:,:,l+1)=geo(:,:,l)
+c     call tmov(geo(1,1,l),geo(1,1,l+1),12)
       pos(l+1)=pos(l)
       levele=itfdownlevel()
       isp=isp0

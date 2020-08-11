@@ -127,7 +127,7 @@ c.....for debug
 c     print *,'length of line',pname(lptr),'is',dist
 c.....end debug
 c.....parameters for ploting
-      plot$=IgetGL('$PLOT$',idummy)
+      plot$=IgetGL('$PLOT$')
       nps=0
       npw=0
       i=plot$
@@ -184,7 +184,7 @@ c         write(*,*)'ActTra ',argp,i,nx$+i-1,nxp(i)
          endif
       enddo
       p0=RgetGL('MOMENTUM',idummy)
-      v0=cveloc*p0/sqrt(p0**2+mass**2)
+      v0=cveloc*p0/hypot(p0,mass)
       if(dist .ne. 0.d0)then
         call RsetGL('OMEGA0',2.D0*PI*v0/dist,idx)
       endif

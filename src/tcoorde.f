@@ -3,6 +3,7 @@
       use ffs_flag
       use tmacro
       use mathfun, only: sqrtl
+      use temw,only:tmulbs
       implicit none
       integer*4 i
       real*8 dx,dy,dz,chi1,chi2,chi3,cchi1,schi1,
@@ -115,7 +116,7 @@
       trans2(6,6)=pzf/p
       call tmultr(trans1,trans2,6)
       call tmultr(trans,trans1,irad)
-      call tmulbs(beam ,trans1,.true.,.true.)
+      call tmulbs(beam ,trans1,.true.)
       cod(1)=xf-pxf/pzf*zf+dx1
       cod(3)=yf-pyf/pzf*zf+dy1
       cod(5)=p/pzf*zf

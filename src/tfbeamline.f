@@ -13,7 +13,7 @@
       type (sad_dlist), pointer :: kl,kli
       integer*8 kfromr,kdx1
       integer*4 irtc,hsrchz,lid,idx,n,lenw,idxi,
-     $     i,idir,idti,nc,itfmessage
+     $     i,idir,idti,nc,itfmessage,itfmessagestr
       character*(MAXPNAME) tfgetstrs,ename
       type (sad_descriptor) kxbl
       save kxbl
@@ -32,7 +32,7 @@
         go to 9900
       endif
       n=kl%nl
-      if(n .lt. 3)then
+      if(n .lt. 1)then
         go to 9900
       endif
       kdx1=ktaloc(n+1)
@@ -65,8 +65,7 @@
             idxi=hsrchz(ename)
             idti=idtype(idxi)
             if(idti .eq. icNULL .or. idti .gt. icMXEL)then
-              irtc=itfmessage(9,'MAIN::wrongtype',
-     $             '"'//ename(1:nc)//'"')
+              irtc=itfmessagestr(9,'MAIN::wrongtype',ename(1:nc))
               go to 9000
             elseif(i .eq. 1 .and. idti .ne. icMARK)then
               irtc=itfmessage(9,'FFS::firstmark',' ')
@@ -86,8 +85,7 @@
       idx=hsrchz(ename)
       if(idtype(idx) .ne. icNULL)then
         lid=lid-1
-        irtc=itfmessage(9,'MAIN::exist',
-     $       '"'//ename(1:lenw(ename))//'"')
+        irtc=itfmessagestr(9,'MAIN::exist',ename(1:lenw(ename)))
         go to 9000
       endif
       idtype(idx)=icLINE
@@ -156,7 +154,7 @@
       integer*8 ka1,kas,kdx1,ktcaloc
       integer*4 isp1,irtc,nc,lenw,narg,idx,itype,
      $     idt,n,i,nce,m,hsrchz,isp0, itfmessage,
-     $     itfdownlevel,l
+     $     itfdownlevel,l,itfmessagestr
       character*(MAXPNAME) ename,type,tfgetstrs,key,tfkwrd
       ename=tfgetstrs(ktastk(isp1+1),nce)
       if(nce .lt. 0)then
@@ -193,8 +191,7 @@
         else
           idt=hsrchz('$'//type)
           if(idtype(idt) .ne. icDEF)then
-            irtc=itfmessage(9,'MAIN::wrongtype',
-     $           '"'//type(1:lenw(type))//'"')
+            irtc=itfmessagestr(9,'MAIN::wrongtype',type(1:lenw(type)))
             return
           endif
           if(idval(idt) .eq. icNULL)then
@@ -210,8 +207,7 @@
               ilist(2,kdx1)=0
             endif
           elseif(idval(idt) .ne. itype)then
-            irtc=itfmessage(9,'FFS::equaltype',
-     $           '"'//type(1:lenw(type))//'"')
+            irtc=itfmessagestr(9,'FFS::equaltype',type(1:lenw(type)))
             return
           endif
         endif
@@ -276,59 +272,56 @@
       type (sad_dlist), pointer :: kr
       type (sad_dlist), pointer :: kl
       type (sad_descriptor) k,ki,kk,kv
-      integer*4 irtc,idx,i,idt,ioff,nc,itfmessage
+      integer*4 irtc,idx,i,idt,ioff,nc,itfmessage,itfmessagestr
       character*(MAXPNAME) tfgetstrs,key
-      if(tfruleq(k,kr))then
-        if(tflistq(k,kl))then
-          do i=1,kl%nl
-            ki=kl%dbody(i)
-            call tfsetelementkey(idx,ki,irtc)
-            if(irtc .ne. 0)then
-              return
-            endif
-          enddo
-        else
-          kk=kr%dbody(1)
-          key=tfgetstrs(kk%k,nc)
-          if(nc .le. 0)then
-            irtc=itfmessage(9,'General::wrongtype','"Character-string"')
+      if(tflistq(k,kl))then
+        do i=1,kl%nl
+          ki=kl%dbody(i)
+          call tfsetelementkey(idx,ki,irtc)
+          if(irtc .ne. 0)then
             return
           endif
-          idt=idtype(idx)
-          do ioff=1,kytbl(kwMAX,idt)-1
-            i=kyindex(ioff,idt)
-            if(i .ne. 0)then
-              if(pname(kytbl(i,0))(2:) .eq. key(1:nc))then
-                go to 10
-              endif
-              i=kyindex1(ioff,idt)
-              if(i .ne. 0 .and.
-     $             pname(kytbl(i,0))(2:) .eq. key(1:nc))then
-                go to 10
-              endif
-            endif
-          enddo
-          irtc=itfmessage(9,'FFS::undefkey',
-     $         '"'//key(1:nc)//'"')
+        enddo
+      elseif(tfruleq(k,kr))then
+        kk=kr%dbody(1)
+        key=tfgetstrs(kk%k,nc)
+        if(nc .le. 0)then
+          irtc=itfmessage(9,'General::wrongtype','"Character-string"')
           return
- 10       kv=kr%dbody(2)
-          if(kr%head%k .eq. ktfoper+mtfruledelayed)then
-            call tfeevalref(kv,kv,irtc)
-            if(irtc .ne. 0)then
-              return
+        endif
+        idt=idtype(idx)
+        do ioff=1,kytbl(kwMAX,idt)-1
+          i=kyindex(ioff,idt)
+          if(i .ne. 0)then
+            if(pname(kytbl(i,0))(2:) .eq. key(1:nc))then
+              go to 10
+            endif
+            i=kyindex1(ioff,idt)
+            if(i .ne. 0 .and.
+     $           pname(kytbl(i,0))(2:) .eq. key(1:nc))then
+              go to 10
             endif
           endif
-          if(ktfrealq(kv))then
-            call tflocald(dlist(idval(idx)+ioff))
-            dlist(idval(idx)+ioff)=kv
-          elseif(tfnonlistq(kv))then
-            irtc=itfmessage(9,'General::wrongtype',
-     $           '"Keyword -> value"')
+        enddo
+        irtc=itfmessagestr(9,'FFS::undefkey',key(1:nc))
+        return
+ 10     kv=kr%dbody(2)
+        if(kr%head%k .eq. ktfoper+mtfruledelayed)then
+          call tfeevalref(kv,kv,irtc)
+          if(irtc .ne. 0)then
             return
-          else
-            call tflocald(dlist(idval(idx)+ioff))
-            dlist(idval(idx)+ioff)=dtfcopy(kv)
           endif
+        endif
+        if(ktfrealq(kv))then
+          call tflocald(dlist(idval(idx)+ioff))
+          dlist(idval(idx)+ioff)=kv
+        elseif(tfnonlistq(kv))then
+          irtc=itfmessage(9,'General::wrongtype',
+     $         '"Keyword -> value"')
+          return
+        else
+          call tflocald(dlist(idval(idx)+ioff))
+          dlist(idval(idx)+ioff)=dtfcopy(kv)
         endif
       else
         irtc=itfmessage(9,'General::wrongtype',
@@ -380,7 +373,7 @@
       type (sad_el), pointer ::el
       integer*8 itfilattp,idx
       integer*4 isp1,irtc,
-     $     lenw,i,n,hsrchz,idl,nc,itfmessage
+     $     lenw,i,n,hsrchz,idl,nc,itfmessage,itfmessagestr
       character*(MAXPNAME) ename,tfgetstrs
       logical*4 eval
       data eval /.true./
@@ -407,8 +400,7 @@
         else
           idl=hsrchz(ename)
           if(idtype(idl) .ne. icLINE)then
-            irtc=itfmessage(9,'MAIN::wrongtype',
-     $           '"'//ename(1:lenw(ename))//'"')
+            irtc=itfmessagestr(9,'MAIN::wrongtype',ename(1:lenw(ename)))
             return
           endif
           call expln(idl)
@@ -418,7 +410,7 @@
       endif
       call loc_el(idx,el)
 c      write(*,*)'extractbeamline-0 ',idx,idl,el%comp(1),el%comp(2),ename
-      n=el%nlat1-2
+      n=el%nlat0
       kx=kxadaloc(-1,n,klx)
       klx%head=dtfcopy1(kxsymbolz('BeamLine',8))
       do i=1,n
@@ -443,7 +435,7 @@ c        write(*,*)'extractbeamline ',i,n,el%comp(i)
       type (sad_descriptor) kx,kx1
       type (sad_dlist), pointer :: kl,kll,klx,klx1
       integer*8 kal
-      integer*4 isp1,irtc,i,j,k,isp0,m,n,isp2
+      integer*4 isp1,irtc,i,j,isp0,m,n,isp2
       integer*8 ifbeamline
       data ifbeamline/0/
       if(ifbeamline .eq. 0)then
@@ -465,19 +457,23 @@ c        write(*,*)'extractbeamline ',i,n,el%comp(i)
                     n=int(kl%rbody(j))
 c                    write(*,*)'expandbeamline ',j,kl%rbody(j),n
                     if(n .gt. 0)then
-                      do k=1,n
-                        isp=isp+1
-                        dtastk(isp)=kl%dbody(3-j)
-                      enddo
+                      dtastk(isp+1:isp+n)=kl%dbody(3-j)
+                      isp=isp+n
+c                      do k=1,n
+c                        isp=isp+1
+c                        dtastk(isp)=kl%dbody(3-j)
+c                      enddo
                     else
                       kal=ktadaloc(-1,2,kll)
                       kll%head%k=ktfoper+mtftimes
                       kll%rbody(1)=-1.d0
                       kll%dbody(2)=dtfcopy(kl%dbody(3-j))
-                      do k=1,-n
-                        isp=isp+1
-                        ktastk(isp)=ktflist+kal
-                      enddo
+                      ktastk(isp+1:isp-n)=ktflist+kal
+                      isp=isp-n
+c                      do k=1,-n
+c                        isp=isp+1
+c                        ktastk(isp)=ktflist+kal
+c                      enddo
                     endif
                     cycle LOOP_I
                   endif

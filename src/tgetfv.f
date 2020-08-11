@@ -6,10 +6,10 @@
       use ffs_pointer
       use ffs_fit
       use tffitcode
-      use tfcsi,only:cssetp
+      use tfcsi,only:ipoint
       implicit none
       integer*4 nfc,lfno,i,l,lenw,ix2,kp,j,next,ncalc
-      real*8 sc,x1,x,getva
+      real*8 sc,x1,x,getva,sig
       character*8 name1
       character*(MAXPNAME) tname
       character*(MAXPNAME+8) name4,name3,namee
@@ -56,28 +56,39 @@ c        write(*,*)'tgetfv ',i,word(:lw),nlist(i)(:l)
  11       continue
           ch=peekch(next)
           if(peekch(next) .eq. ':')then
-            call cssetp(next)
+            ipoint=next
             sc=1.d0
             go to 11
           elseif(ch .eq. '*')then
-            call cssetp(next)
+            ipoint=next
             word='*'
             x1=1.d0
           elseif(ch .eq. '@')then
-            call cssetp(next)
+            ipoint=next
             ch=peekch(next)
             if(ch .eq. '-')then
-              call cssetp(next)
+              ipoint=next
+              sig=-1.d0
               word='@-'
+            elseif(ch .eq. '*')then
+              ipoint=next
+              select case (i)
+              case (mfitax,mfitay,mfitaz,mfitepx,mfitepy,
+     $             mfitzpx,mfitzpy,mfitr2,mfitr3,
+     $             mfitdpx,mfitdpy,
+     $             mfitpepx,mfitpepy,mfitpzpx,mfitpzpy)
+                sig=direlc(mfpnt)
+              case default
+                sig=1.d0
+              end select
+              word='@*'
             else
+              sig=1.d0
               word='@'
             endif
             if(idtypecx(mfpnt) .eq. icMARK)then
               if(i .le. ntwissfun)then
-                x1=rlist(idvalc(mfpnt)+i)
-                if(word .eq. '@-')then
-                  x1=-x1
-                endif
+                x1=rlist(idvalc(mfpnt)+i)*sig
               else
                 call termes(lfno,'No Marked value for '//nlist(i),
      1               ' at '//tname(mfpnt))

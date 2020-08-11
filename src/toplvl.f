@@ -15,7 +15,8 @@
      $     kwBX=kwAY+1,kwBY=kwBX+1,kwEX=kwBY+1,kwEY=kwEX+1,
      $     kwDP=kwEY+1,kwRAD=kwDP+1,kwCHRO=kwRAD+1,kwDZ=kwCHRO+1,
      $     kwEPX=kwDZ+1,kwEPY=kwEPX+1,kwPX=kwEPY+1,kwPY=kwPX+1,
-     $     kwSIGZ=kwPY+1,kwAZ=kwSIGZ+1,kwDPX=kwAZ+1,kwDPY=kwDPX+1,
+     $     kwSIGZ=kwPY+1,kwSIGE=kwSIGZ+1 ,kwAZ=kwSIGE+1,
+     $     kwDPX=kwAZ+1,kwDPY=kwDPX+1,
      $     kwR1=kwDPY+1,kwR2=kwR1+1,kwR3=kwR2+1,kwR4=kwR3+1,
      $     kwDETR=kwR4+1,kwEMIX=kwDETR+1,kwEMIY=kwEMIX+1,
      $     kwINDX=kwEMIY+1,kwBMAX=kwINDX+1,kwPRD=kwBMAX+1,
@@ -154,198 +155,150 @@ c
         use mackw
       end module
 
-      module macmath
-c     Math constants
+      module tfcsi
+        use tfcbk, only:maxlbuf
+        implicit none
+        integer*4, parameter :: nbmax=maxlbuf,nsav=5,ipbase=1
+        type csiparam
+          sequence
+          integer*4 isav(1:0)
+          integer*4 lfni,lfn1,lfno,ios
+          logical*4 rep
+        end type
+        type (csiparam) , target :: savep
+        character*16 delim,cmnt
+        integer*8 ibcloc
+        integer*4, pointer:: ipoint,lrecl,lfni=>savep%lfni,
+     $       lfn1=>savep%lfn1,lfno=>savep%lfno,ios=>savep%ios
+        logical*4 , pointer :: rep=>savep%rep
+        integer*4 iconv,ldel,lcmnt,lastln,ibegt,lastt
+        character*(nbmax) , target  :: buffer0
+        character*(nbmax) , pointer :: buffer
 
-c     Napier's constant(Exp[1])
-c     \lim_{n\rightarrow\infty}(1 + \frac{1}{n})^n
-      real*8, parameter :: m_e        = 2.7182818284590452354d0
+        contains
+        subroutine cssetp(ip)
+        implicit none
+        integer*4 ip
+        ipoint=ip
+        return
+        end subroutine
 
-c     Euler-Mascheroni constant(Euler's gamma)
-c     \lim_{n\rightarrow\infty}(\sum_{k=1}^{n}\frac{1}{k} - \ln{n})
-      real*8, parameter :: m_euler    = 0.57721566490153286061d0
+        subroutine cssets(ip)
+        implicit none
+        integer*4 ip
+        ios=ip
+        return
+        end subroutine
 
-c     Log[2,  Exp[1]]
-      real*8, parameter :: m_log2e    = 1.4426950408889634074d0
+        subroutine cssetl(ip)
+        implicit none
+        integer*4 ip
+        lrecl=ip
+        return
+        end subroutine
 
-c     Log[10, Exp[1]]
-      real*8, parameter :: m_log10e   = 0.43429448190325182765d0
+        subroutine cssetlfni(ip)
+        implicit none
+        integer*4 ip
+        lfni=ip
+        return
+        end subroutine
 
-c     Log[Exp[1],  2]
-      real*8, parameter :: m_ln2      = 0.69314718055994530942d0
+        subroutine cssetlfno(ip)
+        implicit none
+        integer*4 ip
+        lfno=ip
+        return
+        end subroutine
 
-c     Log[Exp[1], 10]
-      real*8, parameter :: m_ln10     = 2.30258509299404568402d0
+        subroutine cssetlfn1(ip)
+        implicit none
+        integer*4 ip
+        lfn1=ip
+        return
+        end subroutine
 
-c         Pi
-      real*8, parameter :: m_pi       = 3.14159265358979323846d0
+        integer*4 function icsmrk()
+        implicit none
+        icsmrk=ipoint
+        return
+        end function
 
-c     2 * Pi
-      real*8, parameter :: m_2pi      = 6.28318530717958647693d0
+        integer*4 function icsstat()
+        implicit none
+        icsstat=ios
+        return
+        end function
 
-c     4 * Pi
-      real*8, parameter :: m_4pi      = 12.5663706143591729539d0
+        integer*4 function icslrecl()
+        implicit none
+        icslrecl=lrecl
+        return
+        end function
 
-c         Pi / 2
-      real*8, parameter :: m_pi_2     = 1.57079632679489661923d0
+        integer*4 function icslfni()
+        implicit none
+        icslfni=lfni
+        return
+        end function
 
-c         Pi / 4
-      real*8, parameter :: m_pi_4     = 0.78539816339744830962d0
+        integer*4 function icslfno()
+        implicit none
+        icslfno=lfno
+        return
+        end function
 
-c     1 / Pi
-      real*8, parameter :: m_1_pi     = 0.31830988618379067154d0
+        integer*4 function icslfn1()
+        implicit none
+        icslfn1=lfn1
+        return
+        end function
 
-c     2 / Pi
-      real*8, parameter :: m_2_pi     = 0.63661977236758134308d0
-
-c     4 / Pi
-      real*8, parameter :: m_4_pi     = 1.27323954473516268615d0
-
-c         Sqrt[Pi]
-      real*8, parameter :: m_sqrtpi   = 1.77245385090551602730d0
-
-c     2 / Sqrt[Pi]
-      real*8, parameter :: m_2_sqrtpi = 1.12837916709551257390d0
-
-c     Sqrt[2]
-      real*8, parameter :: m_sqrt2    = 1.41421356237309504880d0
-
-c     Sqrt[1/2]
-      real*8, parameter :: m_1_sqrt2  = 0.70710678118654752440d0
-
-c     Sqrt[3]
-      real*8, parameter :: m_sqrt3    = 1.73205080756887729353d0
-
-c     Sqrt[1/3]
-      real*8, parameter :: m_1_sqrt3  = 0.57735026918962576451d0
-
-c     Standard alias for SAD sources
-      real*8, parameter :: napier = m_e, euler = m_euler
-      real*8, parameter :: pi  = m_pi
-      real*8, parameter :: pi2 = m_2pi,  pi4 = m_4pi
-      real*8, parameter :: hpi = m_pi_2, qpi = m_pi_4
-
-      end module
-
-      module macphys
-      use macmath
-c DO not forget to update sim/MACPHYS.h!!!
-c
-c     Update History:	
-c     2016/01/12:	from PDG 2014 https://www.google.co.jp/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&ved=0ahUKEwjHw4unsKLKAhUEoJQKHaiPCLgQFggjMAE&url=http%3A%2F%2Fpdg.lbl.gov%2F2014%2Freviews%2Frpp2014-rev-phys-constants.pdf&usg=AFQjCNGXw6APvgkpoTdIRLeC-XV651ZbJg&sig2=-wjwSn5pfl6Juvok0hFqow
-c     2008/03/27:	from CODATA 2006
-c     			http://physics.nist.gov/cuu/Constants/Table/allascii.txt
-c
-c     2003/07/15:	from Particle Data Book
-c
-
-c     Including math constant for permeability of vacuum
-
-c     Speed of light in vacuum:		c
-c     Definition:	299 792 458. m/sec
-      real*8, parameter :: cveloc = 299792458d0
-
-c     Permeability of vacuum:		\mu_0
-c     Definition:	4 Pi x 10^-7 N A^-2
-      real*8, parameter :: mu0 = pi * 4.d-7
-
-c     Permittivity of vacuum:		\epsilon_0 = 1 / (\mu_0 c^2)
-c     Delivered from defintion
-      real*8, parameter :: ep0 = 1.d0 / (mu0 * cveloc**2)
-
-c     Planck's constant:		h
-c     CODATA 2006:	6.626 068 96(33)   x 10^-34 Js
-c     PDG 2014::	6.626 069 57(29)  x 10^-34 Js
-      real*8, parameter :: plank  = 6.62606957d-34
-
-c     Dirac's constant:			hbar = h / (2 Pi)
-c     PDB 2003:		1.054 571 596(82)  x 10^-34 Js
-c     CODATA 2006:	1.054 571 628(53)  x 10^-34 Js
-c     PDG 2014: 	1.054 571 726(47)  x 10^-34 Js
-      real*8, parameter :: plankr = 1.054571726d-34
-
-c     Elementary charge:		e
-c     PDB 2003:		1.602 176 462(63)  x 10^-19 C
-c     CODATA 2006:	1.602 176 487(40)  x 10^-19 C
-c     PDG 2014: 	1.602 176 565(35)  x 10^-19 C
-      real*8, parameter :: elemch = 1.602176565d-19
-
-c     Electron charge in elementary charge unit
-      real*8, parameter :: echarg = 1.0d0
-
-c     Fine-structure constant		\alpha = \mu_0 e^2 c / (2 h)
-c     PDB 2003:		1 / 137.035 999 76(50)
-c     CODATA 2006:	1 / 137.035 999 679(94)
-c     PDG 2014: 	1 / 137.035 999 074(44)
-      real*8, parameter :: finest = 1.d0 / 137.035999074d0
-
-c     Electron mass energy equivalent in eV:	m_e c^2 / e
-c     PDB 2003:		.510 998 902(21) MeV
-c     CODATA 2006:	.510 998 910(13) MeV
-c     PDG 2014: 	.510 998 928(11) MeV
-      real*8, parameter :: elmass =   0.510998928d6
-
-c     Proton mass energy equivalent in eV:	m_p c^2 / e
-c     PDB 2003:		938. 271 998(38) MeV
-c     CODATA 2006:	938. 272 013(23) MeV
-c     PDG 2014: 	938. 272 046(21) MeV
-      real*8, parameter :: prmass = 938.272046d6
-
-c     Classical electron radius:	r_e = e^2 / (4Pi \epsilon_0 m_e c^2)
-c     					    = (\alpha hbar c) / (m_e c^2)
-c     					    = (e^2 c^2 \mu_0 / 4Pi) / (m_e c^2)
-c     					    = e c^2 * 10^-7 * (e / (m_e c^2))
-c     PDB 2003:		2.817 940 285(??)  x 10^-15 m
-c     CODATA 2006:	2.817 940 2894(58) x 10^-15 m
-c     PDG 2014: 	2.817 940 3267(27) x 10^-15 m
-c      parameter (elradi = finest * plankr * cveloc / (elemch * elmass))
-c      parameter (elradi = elemch * cveloc**2 * 1.d-7 / elmass)
-      real*8, parameter :: elradi = 2.8179403267d-15
-
-c     Classical proton radius:		r_p = e^2 / (4Pi \epsilon_0 m_p c^2)
-c     					    = (\alpha hbar c) / (m_p c^2)
-c     					    = (e^2 c^2 \mu_0 / 4Pi) / (m_p c^2)
-c     					    = e c^2 * 10^-7 * (e / (m_p c^2))
-c      parameter (prradi = finest * plankr * cveloc / (elemch * prmass))
-      real*8, parameter :: prradi = elemch * cveloc**2 * 1.d-7 / prmass
-
-c     Boltzman Constant:
-c     PDG2014:         1.380 6488(13) x 10^-23 J/K
-      real*8, parameter :: kboltzman = 1.3806488e-23
-
-c     Spin precession coefficient (ge-2)/2
-c     NIST 2014 0.00115965218091
-c
-      real*8 , parameter :: gspin = 0.00115965218091
+        integer*4 function igetrecl() result(nc)
+        implicit none
+        integer*4 i
+        nc=max(lrecl-ipoint,0)
+        if(nc .gt. 0)then
+          do i=ipoint,ipoint+nc-1
+            if(buffer(i:i) .eq. char(10))then
+              nc=i-ipoint
+              return
+            endif
+          enddo
+        endif
+        return
+        end function
 
       end module
 
       module tfrbuf
-      integer*4, parameter :: irbinit=1,irbopen=2,irbclose=3,
-     $     irbreadrecord=4,
-     $     irbreadbuf=5,irbmovepoint=6,irbbor=7,irbgetpoint=8,
-     $     irbreset=9,irbreadrecordbuf=10,irbeor2bor=11,
-     $     irbsetinp=12,irbcloseinp=13,irbsetbuf=14,irbibuf=15
-      integer*8 , parameter ::
+      use tfstk
+      use maccbk, only:i00
+      implicit none
+      ;integer*4 ,parameter :: irbnofile=-999,irbunread=-1,
+     $     irbeof=-99
+      integer*4 , parameter ::
      $     modeclose=0,moderead=1,modewrite=2,modestring=3,
      $     modeshared=4,modemapped=5
-      integer*4 nbuf
-      parameter (nbuf=1024)
+      integer*4 , parameter :: nbuf=1024
       integer*4 ncprolog
       character*128 prolog
-      integer*4 :: ifd(nbuf)=0
-      integer*8 :: lbuf(nbuf)=0,mbuf(nbuf)=0,itbuf(nbuf)=0,
-     $     ibuf(nbuf)=0,lenbuf(nbuf)=0
+      integer*4 :: ifd(0:nbuf)=0
+      integer*4 , target :: lbuf(0:nbuf)=0,mbuf(0:nbuf)=0,
+     $     itbuf(0:nbuf)=0,lenbuf(0:nbuf)=0
+      integer*8 :: ibuf(0:nbuf)=0
+      type (sad_descriptor) :: ntable(nbuf)
       type cbkshared
         integer*8, allocatable :: ca(:)
       end type
-      type (cbkshared) rbshared(nbuf)
+      type (cbkshared) rbshared(0:nbuf)
+      data ntable(:)%k /nbuf*0/
 
       contains
       integer*4 function nextfn(mode)
       use macfile, only:MAXLLEN
       implicit none
-      integer*8 mode
+      integer*4 mode
       integer*4 ios,f,is
       logical*4 od
       character*(MAXLLEN) msg
@@ -373,6 +326,168 @@ c
       go to 1000
 c
       end function
+
+      subroutine trbassign(lfn)
+      use tfstk
+      use tfcsi
+      use iso_c_binding
+      implicit none
+      integer*4 lfn
+      if(ibuf(lfn) .ne. 0)then
+        call c_f_pointer(c_loc(jlist(1,ibuf(lfn))),buffer)
+      else
+        buffer=>buffer0
+        ibuf(lfn)=transfer(c_loc(buffer0),int8(0))/8
+      endif
+      ipoint=>mbuf(lfn)
+      lrecl=>lbuf(lfn)
+      lfni=lfn
+      return
+      end subroutine
+
+      subroutine trbreset(lfn)
+      implicit none
+      integer*4 lfn
+      if(itbuf(lfn) .le. modewrite)then
+        lbuf(lfn)=0
+        mbuf(lfn)=1
+      else
+        mbuf(lfn)=lbuf(lfn)+1
+      endif
+      return
+      end subroutine
+
+      subroutine trbopen(lfn,ib,is,ifd)
+      implicit none
+      integer*8, intent(in) :: ib,is
+      integer*4, intent(in) :: ifd
+      integer*4, intent(out):: lfn
+      integer*4 j
+      do j=nbuf,11,-1
+        if(itbuf(j) .eq. modeclose)then
+          lfn=j
+          call irbopen1(lfn,ib,is,ifd)
+          return
+        endif
+      enddo
+      lfn=0
+      return
+      end subroutine
+
+      subroutine trbclose(lfn)
+      use tfstk
+      use tfshare
+      implicit none
+      integer*4 lfn,irtc
+      select case (itbuf(lfn))
+      case (modewrite)
+        close(lfn)
+        if(ibuf(lfn) .gt. 0)then
+          if(ilist(2,ibuf(lfn)-1) .ne. 0)then
+            call unixclose(ilist(2,ibuf(lfn)-1))
+            ilist(2,ibuf(lfn)-1)=0
+          endif
+          call tfree(ibuf(lfn))
+        endif
+      case(modeclose,moderead)
+        close(lfn)
+      case (modestring)
+        call tflocal1(ibuf(lfn)-1)
+        ibuf(lfn)=0
+      case (modeshared)
+        call tfreeshared(ibuf(lfn),irtc)
+        ibuf(lfn)=0
+      case default
+        call unmapfile(klist(ibuf(lfn)),int8(lenbuf(lfn)))
+        call unixclose(ifd(lfn))
+      end select
+      lbuf(lfn)=0
+      mbuf(lfn)=1
+      itbuf(lfn)=modeclose
+      return
+      end subroutine
+
+      subroutine trbnextl(lfn)
+      implicit none
+      integer*4 lfn
+      if(lfn .gt. 0)then
+        mbuf(lfn)=lbuf(lfn)+1
+      endif
+      return
+      end subroutine
+
+      subroutine trbeor2bor(lfn)
+      implicit none
+      integer*4 lfn
+      if(lfn .gt. 0)then
+        if(mbuf(lfn) .eq. lbuf(lfn))then
+          mbuf(lfn)=lbuf(lfn)+1
+        endif
+      endif
+      return
+      end subroutine
+
+      integer*8 function itrbibuf(lfn,mode) result(ia)
+      implicit none
+      integer*4 , intent(in) :: lfn,mode
+      if(lfn .gt. 0 .and. itbuf(lfn) .eq. mode)then
+        ia=ibuf(lfn)
+      else
+        ia=0
+      endif
+      return
+      end function
+
+      subroutine trbmovepoint(lfn,nc)
+      implicit none
+      integer*4 , intent(in) :: lfn,nc
+      if(lfn .gt. 0)then
+        mbuf(lfn)=min(lbuf(lfn)+1,max(1,mbuf(lfn)+nc))
+      endif
+      return
+      end subroutine
+
+      subroutine trbinit(lfn,ib)
+      use tfstk
+      implicit none
+      integer*4 , intent(in) ::lfn,ib
+      itbuf(lfn)=ib
+      if(ib .le. modewrite)then
+        if(ibuf(lfn) .eq. 0)then
+          ibuf(lfn)=ktaloc(maxlbuf/8)
+          lenbuf(lfn)=maxlbuf
+        endif
+        ilist(2,ibuf(lfn)-1)=0
+      endif
+      lbuf(lfn)=0
+      mbuf(lfn)=1
+      return
+      end
+
+      subroutine trbopenmap(str,kx,irtc)
+      use tfstk
+      implicit none
+      character*(*) , intent(in)::str
+      integer*4 , intent(out)::irtc
+      type (sad_descriptor) , intent(out)::kx
+      integer*8 kfile,ksize,mapallocfile,kfromr
+      integer*4 lfn,ifd
+      kfile=mapallocfile(str,ifd,ksize,irtc)
+      if(irtc .eq. 0)then
+        call trbopen(lfn,kfile/8,ksize+modemapped,ifd)
+        kx%k=kfromr(dble(lfn))
+      else
+        kx%k=kfromr(-1.d0)
+      endif
+      return
+      end subroutine
+
+      end module
+
+      module ffsfile
+        integer*4 , parameter :: maxlfn=128
+        integer*4 :: lfnp=0,lfnbase=0
+        integer*4 lfnstk(maxlfn)
       end module
 
       module trackbypass
@@ -389,22 +504,27 @@ c
       use macttyp
       use macfile
       use macmisc
+      use gammaf, only:aginit
       use tfstk, only:tfinitstk
+      use ffsfile, only:lfnbase
       implicit none
       integer*8 argp
       integer*4 jslen,jttype,jival
       integer*4 slen,ttype,ival,hsrch,hsrchz,status
-      integer*4 index,IgetGL,idummy
+      integer*4 index,IgetGL
       real*8  jrval,rval
       character*(MAXSTR) jtoken,token
-c     
+c
+c      call omp_set_dynamic(.true.)
+c      call omp_set_num_threads(1)
+      call aginit
  1000 continue
-      if (IgetGL('$CTIME$',idummy) .eq. FLAGON) call cputix
+      if (IgetGL('$CTIME$') .eq. FLAGON) call cputix
       call gettok(token,slen,ttype,rval,ival)
 c     for debug
-c       print *,'toplvl-0 ',token(:slen),slen,ttype
+c       print *,'toplvl-0 ',token(:slen),slen,infl,ttype,ttypEF
 c     end debug
-c     
+c
  1100 continue
       if (ttype .eq. ttypEF) go to 9000
       if(ttype .eq. ttypID) then
@@ -468,20 +588,20 @@ c     end debug
      &        ,0,0)
       endif
       go to 1000
-c     
+c
  9000 continue
-      if(itbuf(infl) .ne. 0)then
+      if(itbuf(infl) .ne. 0 .or. lfnbase .gt. 1)then
         return
       endif
-      print *," SAD1 reads EOF."
+c      print *," SAD1 reads EOF."
       call errmsg("main","Stop execution.(READ EOF)" ,0,0)
-c     
+c
       stop
 c.....Entry point for error handling.
       entry bigjmp(jtoken,jslen,jttype,jrval,jival)
 c........for debug
 c     print *,'Big Jump !!!'
-c     
+c
       token=jtoken
       slen=jslen
       ttype=jttype
@@ -489,3 +609,4 @@ c
       ival=jival
       go to 1100
       end
+

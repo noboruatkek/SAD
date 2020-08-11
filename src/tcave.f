@@ -5,6 +5,7 @@
       use ffs_flag
       use tmacro
       use ffs_pointer, only: gammab
+      use temw,only:tmulbs
       use mathfun
       implicit none
       real*8 eps,oneev
@@ -22,7 +23,7 @@
      $     dpx,dpy,dv,s0
       logical*4 fringe,autophi
       call tchge(trans,cod,beam,srot,
-     $     -dx,-dy,theta,0.d0,0.d0,.true.)
+     $     dx,dy,theta,0.d0,0.d0,.true.)
       if(harm .eq. 0.d0)then
         w=pi2*freq/c
       else
@@ -155,9 +156,10 @@ c          trans1(6,6)=(p1-a*t/p1/h1)/h1/v2
           cod(4)=cod(4)+dpy
           cod(6)=cod(6)+pf/p0
           cod(5)=-t*v2
-          call tmultr(trans,trans1,irad)
+          trans(:,1:irad)=matmul(trans1,trans(:,1:irad))
+c          call tmultr(trans,trans1,irad)
           if(irad .gt. 6)then
-            call tmulbs(beam,trans1,.true.,.true.)
+            call tmulbs(beam,trans1,.true.)
           endif
           dgb=dgb+dhg
         enddo
@@ -194,7 +196,7 @@ c        rg=sqrt(rg2)
         trans(4,1:irad)=trans(4,1:irad)*rg2
         trans(6,1:irad)=trans(6,1:irad)*rg2
         if(irad .gt. 6)then
-          call tmulbs(beam,trans1,.true.,.true.)
+          call tmulbs(beam,trans1,.true.)
         endif
         cod(2)=cod(2)*rg2
         cod(4)=cod(4)*rg2
@@ -204,7 +206,7 @@ c        rg=sqrt(rg2)
         call tesetdv(cod(6))
       endif
       call tchge(trans,cod,beam,srot,
-     $     dx,dy,-theta,0.d0,0.d0,.false.)
+     $     -dx,-dy,-theta,0.d0,0.d0,.false.)
 c      write(*,'(a,i5,1p6g15.7)')'tcave ',l+1,dhg,rg2,
 c     $     trans(5,5),trans(5,6),trans(6,5),trans(6,6)
       return
@@ -212,6 +214,7 @@ c     $     trans(5,5),trans(5,6),trans(6,5),trans(6,6)
 
       subroutine tcavfrie(trans,cod,beam,al,v,w,phic,dphis,s0,p0,
      $     irad,calb,autophi)
+      use temw,only:tmulbs
       use mathfun, only:p2h
       implicit none
       real*8 trans(6,12),cod(6),trans1(6,6),beam(42),
@@ -268,9 +271,10 @@ c      write(*,*)'tcavfrie ',dpt
       trans1(5,5)=v2/v1+az*trans1(6,5)
       trans1(5,6)=az*trans1(6,6)-at*v2/v1
       cod(5)=cod(5)*v2/v1
-      call tmultr(trans,trans1,irad)
+      trans(:,1:irad)=matmul(trans1,trans(:,1:irad))
+c      call tmultr(trans,trans1,irad)
       if(calb)then
-        call tmulbs(beam,trans1,.true.,.true.)
+        call tmulbs(beam,trans1,.true.)
       endif
       return
       end

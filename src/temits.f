@@ -62,7 +62,7 @@
      $     lfno,irtc,ndp,i,k,kk,ns,it,j,nz
       real*8 amus0,amus1,amusstep, emix,emiy,res0,
      $     amus,damp,dj,dpndim,emix0,emiy0,
-     $     fz,phi0s,res,sige,sigea,vx,vy,w,
+     $     fz,phi0s,res,sigea,vx,vy,w,
      $     emixp,emiyp,cod0(6)
       real*8 beam(42),trans(6,12),cod(6),srot(3,9),
      $     beams(10,-ndims:ndims),
@@ -83,18 +83,14 @@ c     $     dhc(4,mphi2,ndp),dhs(4,mphi2,ndp),
       real*8 params(nparams),btr(21,21),rm(6,6),
      $     rx(6,6),rxi(6,6),cmu(mphi2),smu(mphi2),disppi(6),
      $     beamr(42),fj(256),conv,tw0(ntwissfun),dispp(6)
-      character*10 label1(6),label2(6)
-      logical*4 plot,stab,fndcod,calpol0
-      data label1/'        X ','       Px ','        Y ',
-     1     '       Py ','        Z ','       Pz '/
-      data label2/'        x ','    px/p0 ','        y ',
-     1     '    py/p0 ','        z ','    dp/p0 '/
+      logical*4 plot,calpol0,stab
       calpol0=calpol
       calpol=.false.
       codin=0.d0
       beamin(1:21)=0.d0
+      cod=0
       call temit(trans,cod,beamr,btr,
-     $     .true.,int8(0),int8(0),int8(0),int8(0),
+     $     .true.,iaez,
      $     plot,params,stab,lfno)
       dispp=r(:,6)
       call tinitr(rx)
@@ -130,7 +126,7 @@ c     $     dhc(4,mphi2,ndp),dhs(4,mphi2,ndp),
         endif
         cod(5)=0.d0
         cod0=cod
-        call tcod(trans,cod,beam,fndcod)
+        call tcod(trans,cod,beam,.false.,fndcod)
         if(.not. fndcod .and. (i .gt. 1 .or. i .lt. -1))then
           if(i .gt. 1)then
             cod(1:4)=
@@ -140,7 +136,7 @@ c     $     dhc(4,mphi2,ndp),dhs(4,mphi2,ndp),
      $           2.d0*tws(mfitdx:mfitdpy,i+1)-tws(mfitdx:mfitdpy,i+2)
           endif
           cod(5)=0.d0
-          call tcod(trans,cod,beam,fndcod)
+          call tcod(trans,cod,beam,.false.,fndcod)
           if(.not. fndcod)then
             cod=cod0
           endif
@@ -149,8 +145,8 @@ c     $     dhc(4,mphi2,ndp),dhs(4,mphi2,ndp),
         call tinitr(trans)
         trans(:,7:12)=0.d0
         beam(1:21)=0.d0
-        call tturne(trans,cod,beam,srot,int8(0),int8(0),int8(0),
-     $       .false.,.false.,.false.)
+        call tturne(trans,cod,beam,srot,iaez,
+     $       .false.,.false.,.false.,.false.)
         if(fndcod)then
           cod(1:4)=cod(1:4)-codin(1:4)
         else
@@ -171,10 +167,12 @@ c        write(*,'(a,2i5,1p7g12.4)')'temits1-cod ',i,i1,cod
         call tmultr(rm,trans(:,7:12),6)
         call tmultr(rm,rxi,6)
         call tmov65(rm,trads(1,1,i))
-        call tinv6(trans,rm)
-        call tmultr(rm,ri,6)
-        call tfetwiss(rm,cod,tws(1,i),.true.)
-        call tmulbs(beam,rxi,.false.,.false.)
+        tws(1:ntwissfun,i)=tfetwiss(matmul(ri,tinv6(trans(:,1:6))),
+     $       cod,.true.)
+c        call tinv6(trans,rm)
+c        call tmultr(rm,ri,6)
+c        call tfetwiss(rm,cod,tws(1,i),.true.)
+        call tmulbs(beam,rxi,.false.)
         beams(1:10,i)=beam(1:10)
 c        write(*,'(a,i5,1p10g12.4)')'te ',i,beams(1:10,i)
         if(i .le. 0)then
@@ -230,7 +228,7 @@ c        write(*,'(a,i5,1p6g15.7)')'temits-4.1 ',kk,damp,sige,hc(1,1,1:4)
         call tesumb(bc,hc,mphi2,ndp,
      $       w,dj,sige,tws,ndims,beam,fj)
         beamr(1:21)=beam(1:21)
-        call tmulbs(beamr,ri,.false.,.false.)
+        call tmulbs(beamr,ri,.false.)
         vx=beamr(1)*beamr(3)-beamr(2)**2
         vy=beamr(6)*beamr(10)-beamr(9)**2
         emix0=sign(sqrt(abs(vx)),vx)
@@ -250,7 +248,7 @@ c        write(*,'(a,i5,1p6g15.7)')'temits-4.1 ',kk,damp,sige,hc(1,1,1:4)
           call tesumb(bc,hc,mphi2,ndp,
      $         w,dj,sige,tws,ndims,beam,fj)
           beamr(1:21)=beam(1:21)
-          call tmulbs(beamr,ri,.false.,.false.)
+          call tmulbs(beamr,ri,.false.)
           vx=beamr(1)*beamr(3)-beamr(2)**2
           vy=beamr(6)*beamr(10)-beamr(9)**2
           emix=sign(sqrt(abs(vx)),vx)
@@ -290,7 +288,7 @@ c            endif
               call tputbs(beam,label2,lfno)
               call tputbs(beamr,label1,lfno)
               call tedrawf(8,bc,bs,hc,hs,
-     $             sige,amus/pi2,mphi,mphi2,ndp)
+     $             sige,amus/pi2,mphi2,ndp)
             endif
           endif
         else
@@ -830,6 +828,7 @@ c      call tclr(bfb,2*nsb)
       use macmath
       use tfstk,only:ktfenanq
       use tffitcode,only:ntwissfun
+      use sad_main, only:iaidx
       implicit none
       integer*4 mphi,mphi2,nz,ndp,i,j,k,l,m,ndims
       real*8 
@@ -842,9 +841,9 @@ c      call tclr(bfb,2*nsb)
       real*8 phi,cs,phim,csm,p,f,tr1(5,5),h1(4),
      $     beama(10),trd(5,5),dpndim,sigea,btr(10,10),
      $     aj,pj,dj
-      integer*4 ip,kk,k1,ll,l1,ia,n,nj,j1
+      integer*4 ip,kk,k1,ll,l1,nj,j1
       parameter (nj=2)
-      ia(m,n)=((m+n+abs(m-n))**2+2*(m+n)-6*abs(m-n))/8
+c      iaidx(m,n)=((m+n+abs(m-n))**2+2*(m+n)-6*abs(m-n))/8
       bb=0.d0
       bd=0.d0
       ba=0.d0
@@ -869,10 +868,10 @@ c            write(*,'(a,5(1p5g12.4/))')'setup11 ',(tr1(k,:),k=1,5)
             call teintb(ip,f,beams,beama,ndims)
             do k=1,4
               do k1=1,k
-                kk=ia(k,k1)
+                kk=iaidx(k,k1)
                 do l=1,4
                   do l1=1,l
-                    ll=ia(l,l1)
+                    ll=iaidx(l,l1)
                     if(l .eq. l1)then
                       btr(kk,ll)=tr1(k,l)*tr1(k1,l)
 c     btrd(kk,ll)=tr1(k,l)*trd(k1,l)+
@@ -901,7 +900,7 @@ c     $                   trd(k,l1)*trd(k1,l)
                 ha(1:4,k,m,j)=ha(1:4,k,m,j)+tr1(1:4,k)*csm
                 hb(k,m,j)=hb(k,m,j)+h1(k)*csm
                 do l=1,k
-                  kk=ia(k,l)
+                  kk=iaidx(k,l)
                   bb(kk,m,j)=bb(kk,m,j)+h1(k)*h1(l)*csm
                   bd(kk,:,m,j)=bd(kk,:,m,j)+
      $                 (tr1(k,1:4)*h1(l)+tr1(l,1:4)*h1(k))*csm
@@ -926,7 +925,7 @@ c              enddo
               do k=1,4
                 ha(:,k,m,j)=ha(:,k,m,j)+tr1(1:4,k)*csm
                 do l=1,k
-                  kk=ia(k,l)
+                  kk=iaidx(k,l)
                   bd(kk,:,m,j)=bd(kk,:,m,j)+
      $                 (tr1(k,1:4)*h1(l)+tr1(l,1:4)*h1(k))*csm
                 enddo
@@ -1040,13 +1039,14 @@ c$$$     $     bdx(1,m,j0),nd)
       subroutine tesumb(bc,hc,mphi2,ndp,
      $     w,dj,sige,tws,ndims,beam,fj)
       use tffitcode
+      use sad_main, only:iaidx
       implicit none
       integer*4 mphi2,ndp,ndims
       real*8 beam(42),sige,f,dj,w,e,aj
       real*8 bc(10,mphi2,ndp),hc(4,mphi2,ndp),
      $     tws(ntwissfun,-ndims:ndims),fj(ndp),dispp(4)
-      integer*4 i,j,m,ia,i1,ii,n
-      ia(m,n)=((m+n+abs(m-n))**2+2*(m+n)-6*abs(m-n))/8
+      integer*4 i,j,i1,ii
+c      iaidx(m,n)=((m+n+abs(m-n))**2+2*(m+n)-6*abs(m-n))/8
       e=sige**2
       beam(1:21)=0.d0
 c      call tclr(beam,21)
@@ -1065,7 +1065,7 @@ c        enddo
       call tgetphysdispu(tws(1,0),dispp)
       do i=1,4
         do i1=1,i
-          ii=ia(i,i1)
+          ii=iaidx(i,i1)
           beam(ii)=beam(ii)+dispp(i)*dispp(i1)*e
         enddo
       enddo
@@ -1192,20 +1192,20 @@ c      enddo
       
       subroutine teintp1(ip,f,tws,tr1,h1,tw0,ndims)
       use tfstk, only:ktfenanq
-      use temw, only:etwiss2ri,ri
+      use temw, only:etwiss2ri,ri,tinv6
       use ffs, only:xyth
       use tffitcode
       implicit none
       integer*4 ip,ip1,ndims
       real*8 tws(ntwissfun,-ndims:ndims),tr1(5,5),h1(4),
-     $     rxi(6,6),rx(6,6),rt(6,6)
+     $     rxi(6,6),rt(6,6)
       real*8 f,twf(ntwissfun),tw0(ntwissfun),
      $     dnx,dny,dnz,cx,cy,cz,sx,sy,sz
       logical*4 normal
       ip1=ip+1
       twf=f*tws(:,ip1)+(1.d0-f)*tws(:,ip)
       twf(mfitdetr)=twf(mfitr1)*twf(mfitr4)-twf(mfitr2)*twf(mfitr3)
-      call etwiss2ri(twf,rxi,normal)
+      rxi=etwiss2ri(twf,normal)
 c      call etwiss2ri(tw0,ri,normal)
       dnx=twf(mfitnx)-tw0(mfitnx)
       dny=twf(mfitny)-tw0(mfitny)
@@ -1222,9 +1222,10 @@ c      call etwiss2ri(tw0,ri,normal)
       rt(4,:)=-sy*ri(3,:)+cy*ri(4,:)
       rt(5,:)= cz*ri(5,:)+sz*ri(6,:)
       rt(6,:)=-sz*ri(5,:)+cz*ri(6,:)
-      call tinv6(rxi,rx)
-      call tmultr(rt,rx,6)
-      call tmov65(rt,tr1)
+      call tmov65(matmul(tinv6(rxi),rt),tr1)
+c      call tinv6(rxi,rx)
+c      call tmultr(rt,tinv6(rxi),6)
+c      call tmov65(rt,tr1)
       h1=twf(mfitdx:mfitdpy)
       return
       end
@@ -1239,13 +1240,13 @@ c      call etwiss2ri(tw0,ri,normal)
      $     a11,a12,a22,a33,a34,a44,
      $     cosamux,sinamux,cosamuy,sinamuy,
      $     ax,bx,ay,by,amux,amuy
-      logical*4 stab
+      logical*4 stab,nanq
       call qmdiag(
      $     trans(1,1),trans(1,2),trans(1,3),trans(1,4),
      $     trans(2,1),trans(2,2),trans(2,3),trans(2,4),
      $     trans(3,1),trans(3,2),trans(3,3),trans(3,4),
      $     trans(4,1),trans(4,2),trans(4,3),trans(4,4),
-     $     r1,r2,r3,r4,amu,stab,lfno)
+     $     r1,r2,r3,r4,amu,stab,nanq,lfno)
 c     amu=sqrt(1.d0-r1*r4+r2*r3)
       r1a=r1/amu
       r2a=r2/amu

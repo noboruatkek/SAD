@@ -4,7 +4,7 @@
       type (sad_descriptor) k
       integer*4 nc
       character*(*) form
-      character*65535 buff
+      character*(len(tfconvstr)) buff
       call tfconvstrs(buff,k,nc,.false.,form)
       nc=min(nc,len(tfconvstr))
       tfconvstr=buff(1:nc)
@@ -532,7 +532,7 @@ c      include 'DEBUG.inc'
       m=str%nch
       kx=kxavaloc(-1,m,klr)
       if(m .gt. 0)then
-        do i=1,m
+        do concurrent (i=1:m)
           klr%rbody(i)=iachar(str%str(i:i))
         enddo
       endif
@@ -766,8 +766,8 @@ c      include 'DEBUG.inc'
       implicit none
       integer*4 l,lenw,mode
       real*8 x
-      character*22 str1,autos
-      str1=autos(x)
+      character*22 str1,autos1
+      str1=autos1(x)
       l=lenw(str1)
       ktrsaloc=ktsalocb(mode,str1,l)
       return

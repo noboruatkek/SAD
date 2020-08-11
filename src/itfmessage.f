@@ -110,7 +110,7 @@ c     tfstringliststk destroy `string' to decode backslash escape
 c     Search '"' from string(is:l) with backslash escape
         is1=is
         do while(is .le. l .and. string(is1:is1) .ne. '"')
-           if(string(is1:is1) .eq. '\') then
+           if(string(is1:is1) .eq. '\\') then
               string(is1:l-1)=string(is1+1:l)
               l=l-1
            endif
@@ -128,7 +128,7 @@ c     Search '"' from string(is:l) with backslash escape
 c     Search '"' from string(is+1:l) with backslash escape
         in=is
         do while(in .le. l .and. string(in:in) .ne. '"')
-           if(string(in:in) .eq. '\') then
+           if(string(in:in) .eq. '\\') then
               string(in:l-1)=string(in+1:l)
               l=l-1
            endif
@@ -162,6 +162,24 @@ c     Search '"' from string(is+1:l) with backslash escape
       buf(1:1)='"'
       buf(nc+2:nc+2)='"'
       itfmessageexp=itfmessage(level,mess,buf(:nc+2))
+      return
+      end
+
+      integer*4 function itfmessagestr(level,mess,str)
+      use tfstk
+      use strbuf
+      implicit none
+      integer*4 ,parameter :: lbuf=128
+      type (sad_strbuf) , pointer :: strb
+      character*(*) str
+      integer*4 level,itfmessage
+      character*(*) mess
+      integer*4 irtc,isp0
+      isp0=isp
+      call getstringbuf(strb,lbuf*2,.true.)
+      call tfquotestring(strb,str,min(lbuf-1,len(str)),0,irtc)
+      itfmessagestr=itfmessage(level,mess,strb%str(1:strb%nch))
+      isp=isp0
       return
       end
 
@@ -205,6 +223,7 @@ c     Search '"' from string(is+1:l) with backslash escape
       
       subroutine tfaddmessage(str,ip,lfno)
       use tfstk
+      use efun
       implicit none
       type (sad_descriptor) kx,kxaddmess
       type (sad_dlist), pointer :: kle
@@ -230,7 +249,7 @@ c     Search '"' from string(is+1:l) with backslash escape
       dtastk(isp1)=kxaddmess
       ktastk(isp)=kerror
 c      call tfdebugprint(kerror,'addmessage',1)
-      call tfefunref(isp1,kx,.false.,irtc)
+      kx=tfefunref(isp1,.false.,irtc)
 c      call tfdebugprint(kx,'addmessage',1)
       isp=isp1-1
       if(irtc .eq. 0)then
@@ -329,6 +348,7 @@ c      call tfdebugprint(kx,'addmessage',1)
       subroutine tfcheck(isp1,kx,irtc)
       use tfstk
       use tfcsi
+      use efun
       implicit none
       type (sad_descriptor) kx,kf,kxcheckmessage,kxmessagelist
       type (sad_symdef), pointer,save :: symd
@@ -369,7 +389,7 @@ c          write(*,*)'tfcheck-1 ',modethrow,irtc
             kxcheckmessage=kxsymbolz('Check$Message',13)
           endif
           dtastk(isp1+1)=kxcheckmessage
-          call tfefunref(isp1+1,kf,.false.,irtc1)
+          kf=tfefunref(isp1+1,.false.,irtc1)
           if(irtc1 .eq. 0 .and. ktfrealq(kf) .and. kf%k .ne. 0)then
             rlist(ierrorgen)=0.d0
             call tfeevalref(ktastk(isp1+2),kx,irtc)

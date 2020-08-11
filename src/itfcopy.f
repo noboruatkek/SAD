@@ -1,14 +1,15 @@
       subroutine tfdelete(def,del,unset)
       use tfstk
       use tfcode
+      use efun
       implicit none
-      type (sad_symdef) def
+      type (sad_symdef) ,intent(inout):: def
       type (sad_symdef), pointer :: def1
       type (sad_defhash), pointer :: dhash
       type (sad_descriptor) kx
       integer*8 ka1,ka10,kp1,kadi,kadi0,kp0
       integer*4 i,kk,irtc,isp0
-      logical*4 del,unset
+      logical*4 ,intent(in):: del,unset
       if(unset)then
         if(def%upval .ne. 0)then
           isp0=isp
@@ -16,7 +17,7 @@
           ktastk(isp)=ktfoper+mtfunset
           isp=isp+1
           dtastk(isp)=sad_descr(def%sym)
-          call tfefunref(isp0+1,kx,.true.,irtc)
+          kx=tfefunref(isp0+1,.true.,irtc)
           if(irtc .ne. 0 .and. ierrorprint .ne. 0)then
             call tfreseterror
           endif
@@ -75,7 +76,7 @@
       integer*8 function ktfcopy(k)
       use tfstk, ktfc=>ktfcopy
       implicit none
-      integer*8 k
+      integer*8 ,intent(in):: k
       ktfcopy=ktfc(k)
       return
       end

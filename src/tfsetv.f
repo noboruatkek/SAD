@@ -1,46 +1,75 @@
       subroutine tfsetv(nvar)
       use tfstk
-      use ffs, only:nlat
+      use ffs, only:nlat,nvevx,nelvx,ffv
       use ffs_pointer
-      use mackw
-      use ffs_seg
       implicit none
       type (sad_comp), pointer :: cmp
-      integer*4 nvar
-      integer*4 i,ie,iv,j,ii,ie1
+      integer*4 ,intent(in):: nvar
+      integer*4 i,ie,iv,j,ii,ie1,nv,is
       if(nvar .gt. 0)then
         do i=1,nlat-1
           call compelc(i,cmp)
-          ii=iele(i)
-          ie=iele1(ii)
-          ie1=iele1(i)
-          do j=1,nvar
-            iv=ivvar(j)
-            if(iv .eq. ival(ie) .and. ivarele(j) .eq. ie
-     $           .and. (ivcomp(j) .eq. 0 .or. ivcomp(j) .eq. ii))then
-c              call tfsetcmp(valvar(j)*errk(1,i)*couple(i),cmp,iv)
-              cmp%value(iv)=valvar(j)*errk(1,i)*couple(i)
-              cmp%update=iand(cmp%update,2)
-            elseif(iv .ne. 0 .and. iv .ne. ival(ie) .and.
-     $             ivarele(j) .eq. ie1
-     $             .and. (ivcomp(j) .eq. 0 .or. ivcomp(j) .eq. i))then
-c              call tfsetcmp(valvar(j),cmp,iv)
-              cmp%value(iv)=valvar(j)
-              cmp%update=iand(cmp%update,2)
-            endif
-            if(ivarele(j) .gt. ie)then
-              exit
-            endif
-          enddo
+          if(ffv%evarini)then
+            cmp%ievar1=0
+            cmp%ievar2=0
+            ii=icomp(i)
+            ie=iele1(ii)
+            ie1=iele1(i)
+            is=0
+            do j=1,nvar
+              iv=nvevx(j)%ivvar
+              if(iv .eq. nelvx(ie)%ival)then
+                if(nvevx(j)%ivarele .eq. ie
+     $               .and. (nvevx(j)%ivcomp .eq. 0 .or.
+     $               nvevx(j)%ivcomp .eq. ii))then
+c                  cmp%value(iv)=nvevx(j)%valvar*errk(1,i)*couple(i)
+c                  cmp%update=cmp%nparam .le. 0
+                  cmp%ievar1=j
+                  is=is+1
+                endif
+              elseif(iv .ne. 0 .and. nvevx(j)%ivarele .eq. ie1
+     $               .and. (nvevx(j)%ivcomp .eq. 0 .or.
+     $               nvevx(j)%ivcomp .eq. i))then
+c                cmp%value(iv)=nvevx(j)%valvar
+c                cmp%update=cmp%nparam .le. 0
+                cmp%ievar2=j
+                is=is+1
+              endif
+              if(is .ge. 2 .or. nvevx(j)%ivarele .gt. ie)then
+                exit
+              endif
+            enddo
+          endif
+          if(cmp%ievar1 .ne. 0)then
+            cmp%value(nvevx(cmp%ievar1)%ivvar)=
+     $           nvevx(cmp%ievar1)%valvar*errk(1,i)*couple(i)
+            cmp%update=cmp%nparam .le. 0
+          endif
+          if(cmp%ievar2 .ne. 0)then
+            cmp%value(nvevx(cmp%ievar2)%ivvar)=
+     $           nvevx(cmp%ievar2)%valvar
+            cmp%update=cmp%nparam .le. 0
+          endif
         enddo
         call tfinitvar
       endif
+      ffv%evarini=.false.
+      return
+      end
+
+      subroutine tffsadjustvar
+      use tfstk
+      use ffs
+      use tffitcode
+      implicit none
+      call tffsadjust
+      call tfinitvar
       return
       end
 
       subroutine tfinitvar
       use tfstk
-      use ffs, only: flv
+      use ffs, only: flv,nvevx,nelvx
       use ffs_pointer
       use tfcsi, only:icslfno
       implicit none
@@ -51,34 +80,16 @@ c              call tfsetcmp(valvar(j),cmp,iv)
         call termes(icslfno(),'?Error in CoupledVariables',' ')
       endif
       do i=1,flv%nvar
-        ie=ivarele(i)
-        iv=ivvar(i)
-        k=ivcomp(i)
+        ie=nvevx(i)%ivarele
+        iv=nvevx(i)%ivvar
+        k=nvevx(i)%ivcomp
         if(k .eq. 0)then
-          k=klp(ie)
+          k=nelvx(ie)%klp
         endif
-        if(iv .eq. ival(ie))then
-          valvar(i)=tfvalvar(k,iv)/errk(1,k)
+        if(iv .eq. nelvx(ie)%ival)then
+          nvevx(i)%valvar=tfvalvar(k,iv)/errk(1,k)
         else
-          valvar(i)=tfvalvar(k,iv)
-        endif
-      enddo
-      return
-      end
-
-      subroutine tfsavevar(ie,ntou)
-      use tfstk
-      use ffs_pointer
-      use sad_main
-      use ffs_seg
-      implicit none
-      type (sad_comp), pointer :: cmps,cmpd
-      integer*4 ntou,i,ie
-      do i=1,ntou
-        if(itouchele(i) .eq. ie)then
-          call loc_comp(latt(klp(ie)),cmps)
-          call loc_comp(idvalc(klp(ie)),cmpd)
-          call tfvcopycmp(cmps,cmpd,itouchv(i),1.d0)
+          nvevx(i)%valvar=tfvalvar(k,iv)
         endif
       enddo
       return
@@ -96,34 +107,37 @@ c              call tfsetcmp(valvar(j),cmp,iv)
       integer*4 i,ie,j,irtc,ie1,ntv,k
       ite=0
       ntv=0
-      do j=1,flv%ntouch
-        if(ival(itouchele(j)) .ne. itouchv(j))then
+      do concurrent (j=1:flv%ntouch)
+        if(nelvx(nvevx(j)%itouchele)%ival .ne. nvevx(j)%itouchv)then
           ntv=ntv+1
           itv(ntv)=j
-          ite(itouchele(j))=1
+          ite(nvevx(j)%itouchele)=1
         endif
       enddo
       if(ntv .eq. 0)then
         do i=1,nlat-1
-          ie=iele1(iele(i))
-          if(iele(i) .ne. i .and. ie .ne. 0 .and. ival(ie) .ne. 0)then
-            call tfvcopy(iele(i),i,ival(ie),
-     $           errk(1,i)*couple(i)/errk(1,iele(i)))
+          ie=iele1(icomp(i))
+          if(icomp(i) .ne. i .and. ie .ne. 0 .and.
+     $         nelvx(ie)%ival .ne. 0)then
+            call tfvcopy(icomp(i),i,nelvx(ie)%ival,
+     $           errk(1,i)*couple(i)/errk(1,icomp(i)))
           endif
         enddo
       else
         do i=1,nlat-1
-          ie=iele1(iele(i))
+          ie=iele1(icomp(i))
           ie1=iele1(i)
-          if(ie .ne. 0 .and. i .ne. iele(i) .and. ival(ie) .ne. 0)then
-            call tfvcopy(iele(i),i,ival(ie),
-     $           errk(1,i)*couple(i)/errk(1,iele(i)))
+          if(ie .ne. 0 .and. i .ne. icomp(i) .and.
+     $         nelvx(ie)%ival .ne. 0)then
+            call tfvcopy(icomp(i),i,nelvx(ie)%ival,
+     $           errk(1,i)*couple(i)/errk(1,icomp(i)))
           endif
           if(ite(ie1) .ne. 0)then
             do k=1,ntv
               j=itv(k)
-              if(itouchele(j) .eq. ie1 .and. klp(ie1) .ne. i)then
-                call tfvcopy(klp(ie1),i,itouchv(j),1.d0)
+              if(nvevx(j)%itouchele .eq. ie1 .and.
+     $             nelvx(ie1)%klp .ne. i)then
+                call tfvcopy(nelvx(ie1)%klp,i,nvevx(j)%itouchv,1.d0)
               endif
             enddo
           endif
@@ -132,44 +146,6 @@ c              call tfsetcmp(valvar(j),cmp,iv)
       call tffscoupledvar(irtc)
       if(irtc .ne. 0)then
         call termes(icslfno(),'?Error in CoupledVariables',' ')
-      endif
-      return
-      end
-
-      subroutine tffscoupledvar(irtc)
-      use tfstk
-      use tfcsi, only:icslfno
-      implicit none
-      integer*4 ia,irtc,itfdownlevel,irtc1
-      type (sad_dlist), pointer :: kl
-      type (sad_descriptor) ifcoupv,ifsetcoup,k,kx
-      type (sad_symdef), pointer, save :: symdcoupv
-      data ifcoupv%k,ifsetcoup%k /0,0/
-      if(ifcoupv%k .eq. 0)then
-        ifcoupv  =kxsymbolz('`EVList',7)
-        call descr_sad(ifcoupv,symdcoupv)
-        ifsetcoup=kxsymbolz('SetCoupledElements',18)
-      endif
-      irtc=0
-      k=symdcoupv%value
-      if(tflistq(k,kl))then
-        if(kl%nl .eq. 0)then
-          return
-        endif
-      endif
-      levele=levele+1
-      call tfsyeval(ifsetcoup,kx,irtc)
-      ia=itfdownlevel()
-      if(irtc .ne. 0)then
-        if(irtc .gt. 0)then
-          if(ierrorprint .ne. 0)then
-            ierrorf=0
-            irtc1=irtc
-            call tfaddmessage(
-     $           'SetCoupledElements',18,icslfno())
-          endif
-        endif
-        return
       endif
       return
       end
@@ -183,18 +159,19 @@ c              call tfsetcmp(valvar(j),cmp,iv)
       use ffs_seg
       implicit none
       type (sad_rlist), pointer ::kl
-      integer*4 i,j,isp0,isp1,l,irtc,k,k1,ie1
-      logical*4 var,nv
+      integer*4 ,intent(in)::isp0
+      integer*4 i,j,isp1,l,irtc,k,k1,ie1
+      logical*4 ,intent(in)::var,nv
       if(nv)then
         do i=1,nele
-          k1=klp(i)
+          k1=nelvx(i)%klp
           do j=isp0+1,isp
             if(itastk(1,j) .eq. i)then
               call elcompl(i,kl)
               do l=1,kl%nl
                 k=int(kl%rbody(l))
-                if(k .ne. k1 .and. iele(k) .eq. k1
-     $               .and. itastk(2,j) .ne. ival(i))then
+                if(k .ne. k1 .and. icomp(k) .eq. k1
+     $               .and. itastk(2,j) .ne. nelvx(i)%ival)then
                   call tfvcopy(k1,k,itastk(2,j),1.d0)
                 endif
               enddo
@@ -206,12 +183,12 @@ c              call tfsetcmp(valvar(j),cmp,iv)
         isp1=isp
         isp=isp+1
         do l=1,nlat-1
-          ie1=iele1(iele(l))
+          ie1=iele1(icomp(l))
           itastk(1,isp)=ie1
-          itastk(2,isp)=ival(ie1)
+          itastk(2,isp)=nelvx(ie1)%ival
           do j=isp0+1,isp1
             if(ktastk(j) .eq. ktastk(isp))then
-              call tfvcopy(klp(ie1),l,ival(ie1),couple(l))
+              call tfvcopy(icomp(l),l,nelvx(ie1)%ival,couple(l))
             endif
           enddo
         enddo
@@ -223,3 +200,63 @@ c              call tfsetcmp(valvar(j),cmp,iv)
       endif
       return
       end
+
+      subroutine tffscoupledvar(irtc)
+      use tfstk
+      use tfcsi, only:icslfno
+      implicit none
+      integer*4 ,intent(out):: irtc
+      integer*4 ia,itfdownlevel,irtc1
+      type (sad_dlist), pointer :: kl
+      type (sad_descriptor) ifcoupv,ifsetcoup,k,kx
+      type (sad_symdef), pointer, save :: symdcoupv
+      data ifcoupv%k,ifsetcoup%k /0,0/
+      if(ifcoupv%k .eq. 0)then
+        ifcoupv  =dtfcopy1(kxsymbolz('`EVList',7))
+        call descr_sad(ifcoupv,symdcoupv)
+        ifsetcoup=dtfcopy1(kxsymbolz('SetCoupledElements',18))
+      endif
+      irtc=0
+      k=symdcoupv%value
+      if(tflistq(k,kl))then
+        if(kl%nl .eq. 0)then
+          return
+        endif
+      else
+        return
+      endif
+      levele=levele+1
+      call tfsyeval(ifsetcoup,kx,irtc)
+      if(irtc .ne. 0)then
+        if(irtc .gt. 0)then
+          if(ierrorprint .ne. 0)then
+            ierrorf=0
+            irtc1=irtc
+            call tfaddmessage(
+     $           'SetCoupledElements',18,icslfno())
+          endif
+        endif
+      endif
+      ia=itfdownlevel()
+      return
+      end
+
+      subroutine tfsavevar(ie,ntou)
+      use tfstk
+      use ffs, only:nvevx,nelvx
+      use ffs_pointer
+      use sad_main
+      use ffs_seg
+      implicit none
+      type (sad_comp), pointer :: cmps,cmpd
+      integer*4 ntou,i,ie
+      do i=1,ntou
+        if(nvevx(i)%itouchele .eq. ie)then
+          call loc_comp(latt(nelvx(ie)%klp),cmps)
+          call loc_comp(idvalc(nelvx(ie)%klp),cmpd)
+          call tfvcopycmp(cmps,cmpd,nvevx(i)%itouchv,1.d0)
+        endif
+      enddo
+      return
+      end
+

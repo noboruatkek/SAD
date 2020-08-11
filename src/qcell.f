@@ -7,13 +7,14 @@
       implicit none
       type (ffs_bound) fb
       type (ffs_stat) optstat
-      integer*4 idp
+      integer*4 idp,lfno
       logical*4 fam
       fb%lb=1
       fb%le=nlat
       fb%fb=0.d0
       fb%fe=0.d0
-      call qcell1(fb,idp,optstat,fam,.true.,0)
+      lfno=0
+      call qcell1(fb,idp,optstat,fam,.true.,lfno)
       return
       end
 
@@ -24,8 +25,8 @@
       use ffs_fit , only:ffs_stat
       use tffitcode
       implicit none
-      type (ffs_bound) fbound
-      type (ffs_stat) optstat
+      type (ffs_bound) , intent(in)::fbound
+      type (ffs_stat) , intent(out)::optstat
       real*8 bmin,bmax,amax
       integer*4 itmax
       parameter (bmin=1.d-16,bmax=1.d16,amax=1.d16)
@@ -38,11 +39,14 @@
      $     a13,a23,b13,b23,
      $     cosmux,cosmuy,sinmux,sinmuy,
      $     amux,amuy,dcosmux,dcosmuy,
-     $     xb,xe,xp,fr,fra,frb,tr,
+     $     xb,xe,xp,fr,fra,frb,tr(4,5),
      $     dpsix,dpsiy,cosx,sinx,cosy,siny,
      $     x11,x22,y11,y22
-      integer*4 idp,ie1,l,nm,lx,lfno
-      logical*4 stab,codfnd,fam,chgini,pri
+      integer*4 , intent(in) :: idp
+      integer*4 , intent(inout) :: lfno
+      integer*4 ie1,l,nm,lx
+      logical*4 , intent(in)::fam,chgini
+      logical*4 stab,codfnd,pri,nanq
       real*8 trans(4,5),cod(6),
      $     tm11,tm12,tm13,tm14,tm15,
      $     tm21,tm22,tm23,tm24,tm25,
@@ -58,7 +62,7 @@
      $     (trans(4,1),tm41),(trans(4,2),tm42),(trans(4,3),tm43),
      $     (trans(4,4),tm44),(trans(4,5),tm45)
       if(calc6d)then
-        call qcell61(fbound,idp,optstat,lfno)
+        call qcell6d(fbound,idp,optstat,lfno)
         return
       endif
       pri=.false.
@@ -100,9 +104,14 @@
      1       tm21,tm22,tm23,tm24,
      1       tm31,tm32,tm33,tm34,
      1       tm41,tm42,tm43,tm44,
-     1       r1,r2,r3,r4,c1,stab,lfno)
+     1       r1,r2,r3,r4,c1,stab,nanq,lfno)
 C     ----------------------------
         if(.not. stab)then
+          optstat%stabx=.false.
+          optstat%staby=.false.
+          if(nanq)then
+            return
+          endif
           go to 1
         endif
         twiss(fbound%lb,idp,mfitr1) = r1
@@ -313,14 +322,11 @@ c     (Note) Disperdion is defined in 2*2 world
         if(idtypec(l) .eq. icMARK)then
           xp=tffselmoffset(l)
           if(xp .ne. dble(l))then
-c            write(*,*)'qcell ',l,fbound%fe,nlat,xp,xe
             if(xp .ge. xb .and. xp .lt. xe)then
               lx=int(xp)
               fr=xp-lx
  8101         if(fr .eq. 0.d0)then
-c                do k=1,ntwissfun
-                  twiss(l,idp,:)=twiss(lx,idp,:)
-c                enddo
+                twiss(l,idp,:)=twiss(lx,idp,:)
               else
                 if(lx .eq. fbound%lb)then
                   fra=fbound%fb
@@ -400,66 +406,61 @@ c                enddo
       return
       end
 
-      subroutine  qcell61(fbound,idp,optstat,lfno)
+      subroutine qcell6d(fbound,idp,optstat,lfno)
       use ffs
       use ffs_fit ,only:ffs_stat
       use ffs_pointer
-      use temw
+      use temw,only:calint,normali,tinv6,etwiss2ri,tsymp,nparams,
+     $     tfinibeam,iaez,tfetwiss
+      use maccbk, only:i00
       implicit none
-      type (ffs_bound) fbound
-      type (ffs_stat) optstat
-      integer*4 lfno,idp
-      real*8 trans(6,12),cod(6),beam(21),srot(3,9),tw1(ntwissfun)
-      complex*16 ceig(6)
-      logical*4 codfnd,cell0,codplt0,ci0,rt
+      type (ffs_bound) ,intent(in):: fbound
+      type (ffs_stat) ,intent(out):: optstat
+      integer*4 ,intent(in):: lfno,idp
+      integer*4 ir0
+      real*8 trans(6,12),cod(6),cod0(6),beam(42),srot(3,9),
+     $     btr(21,21),ri0(6,6)
+      logical*4 stab,cell0,codplt0,ci0,rt,wspaccheck,calint1
+      real*8 params(nparams)
+      ir0=irad
       cell0=cell
+      cell=cell0 .and. .not. trpt
       codplt0=codplt
       ci0=calint
+      calint1=wspac .or. intra
       rt=radtaper
-      calint=.false.
-      irad=6
- 1    cod=twiss(1,idp,mfitdx:mfitddp)
-      if(cell)then
-        codfnd=.false.
-        call tcod(trans,cod,beam,codfnd)
-        if(.not. codfnd)then
-          write(lfno,*)
-     $         '*****tcod---> Closed orbit not found'
+      codplt=.true.
+      ri0=etwiss2ri(twiss(fbound%lb,idp,1:ntwissfun),normali)
+      cod0=twiss(1,idp,mfitdx:mfitddp)
+      cod=cod0
+ 1    if(cell)then
+        call temit(trans,cod,beam,btr,
+     $     calint1,iaez,.true.,params,stab,0)
+        if(.not. stab)then
+          write(lfno,*)'*****qcell6d---> Unstable optics'
           optstat%stabx=.false.
           optstat%staby=.false.
           cell=.false.
           go to 1
         endif
-        r=trans(:,1:6)
-        if(.not. rfsw)then
-          r(6,1)=0.d0
-          r(6,2)=0.d0
-          r(6,3)=0.d0
-          r(6,4)=0.d0
-          r(6,5)=0.d0
-          r(6,6)=1.d0
-        endif
-c        write(*,'(1p6g15.7)')(r(i,1:6),i=1,6)
-        call teigen(r,ri,ceig,6,6)
-        call tnorm(r,ceig,0)
-        call tsymp(r)
-        call tinv6(r,ri)
-c       write(*,'(1p6g15.7)')(ri(i,1:6),i=1,6)
-       normali=.true.
+        normali=.true.
       else
-        tw1=twiss(fbound%lb,idp,1:ntwissfun)
-c        write(*,*)'qcell61 ',fbound%lb,tw1(mfitnx),tw1(mfitny)
-        call etwiss2ri(tw1,ri,normali)
-        call tinv6(ri,r)
+        if(wspaccheck())then
+          optstat%stabx=.false.
+          optstat%staby=.false.
+          return
+        endif
+        cod=cod0
+        twiss(fbound%lb,idp,1:ntwissfun)=tfetwiss(ri0,cod,.true.)
+        beam(1:21)=tfinibeam(fbound%lb)
+        beam(22:42)=0.d0
+        call tinitr(trans)
+        call tturne0(trans,cod,beam,srot,fbound,
+     $       iaez,idp,.true.,rt,.true.)
       endif
-      codplt=.true.
-      call tinitr(trans)
-      call tturne0(trans,cod,beam,srot,fbound,
-     $     int8(0),int8(0),int8(0),idp,.true.,rt,.true.)
-c      write(*,*)'qcell61-1 ',twiss(fbound%lb,idp,mfitnx),
-c     $     twiss(fbound%lb,idp,mfitny)
       calint=ci0
       codplt=codplt0
       cell=cell0
+      irad=ir0
       return
       end

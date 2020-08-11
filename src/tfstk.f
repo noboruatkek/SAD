@@ -1,5 +1,275 @@
+      module macmath
+c     Math constants
+
+c     Napier's constant(Exp[1])
+c     \lim_{n\rightarrow\infty}(1 + \frac{1}{n})^n
+      real*8, parameter :: m_e        = 2.7182818284590452354d0
+
+c     Euler-Mascheroni constant(Euler's gamma)
+c     \lim_{n\rightarrow\infty}(\sum_{k=1}^{n}\frac{1}{k} - \ln{n})
+      real*8, parameter :: m_euler    = 0.57721566490153286061d0
+
+c     Log[2,  Exp[1]]
+      real*8, parameter :: m_log2e    = 1.4426950408889634074d0
+
+c     Log[10, Exp[1]]
+      real*8, parameter :: m_log10e   = 0.43429448190325182765d0
+
+c     Log[Exp[1],  2]
+      real*8, parameter :: m_ln2      = 0.69314718055994530942d0
+
+c     Log[Exp[1], 10]
+      real*8, parameter :: m_ln10     = 2.30258509299404568402d0
+
+c         Pi
+      real*8, parameter :: m_pi       = 3.14159265358979323846d0
+
+c     2 * Pi
+      real*8, parameter :: m_2pi      = 6.28318530717958647693d0
+
+c     4 * Pi
+      real*8, parameter :: m_4pi      = 12.5663706143591729539d0
+
+c         Pi / 2
+      real*8, parameter :: m_pi_2     = 1.57079632679489661923d0
+
+c         Pi / 4
+      real*8, parameter :: m_pi_4     = 0.78539816339744830962d0
+
+c     1 / Pi
+      real*8, parameter :: m_1_pi     = 0.31830988618379067154d0
+
+c     2 / Pi
+      real*8, parameter :: m_2_pi     = 0.63661977236758134308d0
+
+c     4 / Pi
+      real*8, parameter :: m_4_pi     = 1.27323954473516268615d0
+
+c         Sqrt[Pi]
+      real*8, parameter :: m_sqrtpi   = 1.77245385090551602730d0
+
+c     2 / Sqrt[Pi]
+      real*8, parameter :: m_2_sqrtpi = 1.12837916709551257390d0
+
+c     Sqrt[2]
+      real*8, parameter :: m_sqrt2    = 1.41421356237309504880d0
+
+c     Sqrt[1/2]
+      real*8, parameter :: m_1_sqrt2  = 0.70710678118654752440d0
+
+c     Sqrt[3]
+      real*8, parameter :: m_sqrt3    = 1.73205080756887729353d0
+
+c     Sqrt[1/3]
+      real*8, parameter :: m_1_sqrt3  = 0.57735026918962576451d0
+
+c     Standard alias for SAD sources
+      real*8, parameter :: napier = m_e, euler = m_euler
+      real*8, parameter :: pi  = m_pi
+      real*8, parameter :: pi2 = m_2pi,  pi4 = m_4pi
+      real*8, parameter :: hpi = m_pi_2, qpi = m_pi_4
+
+      integer*4 ,parameter :: nsprime=1000;
+      integer*4 ,parameter :: smallprime(nsprime)=[
+     $2,3,5,7,11,13,17,19,23,29,31,37, 41, 43, 47, 53, 59, 61, 
+     $67,71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 
+     $139,149,151,157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 
+     $223, 227, 229,233,239,241,251,257, 263, 269, 271, 277, 281, 283, 
+     $293,307,311,313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 
+     $383, 389, 397,401,409,419, 421, 431, 433, 439, 443, 449, 457, 461, 
+     $463, 467, 479, 487, 491,499,503,509, 521, 523, 541, 547, 557, 563, 
+     $569, 571, 577, 587, 593, 599, 601,607,613,617, 619, 631, 641, 643, 
+     $647, 653, 659, 661, 673, 677, 683, 691, 701,709,719,727, 733, 739, 
+     $743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821,823,827,829, 
+     $839,853,857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929,937, 
+     $941, 947,953,967, 971, 977, 983, 991, 997, 1009, 1013, 1019, 1021, 
+     $1031, 1033, 1039, 1049, 1051, 1061, 1063, 1069, 1087, 1091, 1093, 
+     $1097, 1103, 1109, 1117, 1123, 1129, 1151, 1153, 1163, 1171, 1181, 
+     $1187, 1193, 1201, 1213, 1217, 1223, 1229, 1231, 1237, 1249, 1259, 
+     $1277, 1279, 1283, 1289, 1291, 1297, 1301, 1303, 1307, 1319, 1321, 
+     $1327, 1361, 1367, 1373, 1381, 1399, 1409, 1423, 1427, 1429, 1433, 
+     $1439, 1447, 1451, 1453, 1459, 1471, 1481, 1483, 1487, 1489, 1493, 
+     $1499, 1511, 1523, 1531, 1543, 1549, 1553, 1559, 1567, 1571, 1579, 
+     $1583, 1597, 1601, 1607, 1609, 1613, 1619, 1621, 1627, 1637, 1657, 
+     $1663, 1667, 1669, 1693, 1697, 1699, 1709, 1721, 1723, 1733, 1741, 
+     $1747, 1753, 1759, 1777, 1783, 1787, 1789, 1801, 1811, 1823, 1831, 
+     $1847, 1861, 1867, 1871, 1873, 1877, 1879, 1889, 1901, 1907, 1913, 
+     $1931, 1933, 1949, 1951, 1973, 1979, 1987, 1993, 1997, 1999, 2003, 
+     $2011, 2017, 2027, 2029, 2039, 2053, 2063, 2069, 2081, 2083, 2087, 
+     $2089, 2099, 2111, 2113, 2129, 2131, 2137, 2141, 2143, 2153, 2161, 
+     $2179, 2203, 2207, 2213, 2221, 2237, 2239, 2243, 2251, 2267, 2269, 
+     $2273, 2281, 2287, 2293, 2297, 2309, 2311, 2333, 2339, 2341, 2347, 
+     $2351, 2357, 2371, 2377, 2381, 2383, 2389, 2393, 2399, 2411, 2417, 
+     $2423, 2437, 2441, 2447, 2459, 2467, 2473, 2477, 2503, 2521, 2531, 
+     $2539, 2543, 2549, 2551, 2557, 2579, 2591, 2593, 2609, 2617, 2621, 
+     $2633, 2647, 2657, 2659, 2663, 2671, 2677, 2683, 2687, 2689, 2693, 
+     $2699, 2707, 2711, 2713, 2719, 2729, 2731, 2741, 2749, 2753, 2767, 
+     $2777, 2789, 2791, 2797, 2801, 2803, 2819, 2833, 2837, 2843, 2851, 
+     $2857, 2861, 2879, 2887, 2897, 2903, 2909, 2917, 2927, 2939, 2953, 
+     $2957, 2963, 2969, 2971, 2999, 3001, 3011, 3019, 3023, 3037, 3041, 
+     $3049, 3061, 3067, 3079, 3083, 3089, 3109, 3119, 3121, 3137, 3163, 
+     $3167, 3169, 3181, 3187, 3191, 3203, 3209, 3217, 3221, 3229, 3251, 
+     $3253, 3257, 3259, 3271, 3299, 3301, 3307, 3313, 3319, 3323, 3329, 
+     $3331, 3343, 3347, 3359, 3361, 3371, 3373, 3389, 3391, 3407, 3413, 
+     $3433, 3449, 3457, 3461, 3463, 3467, 3469, 3491, 3499, 3511, 3517, 
+     $3527, 3529, 3533, 3539, 3541, 3547, 3557, 3559, 3571, 3581, 3583, 
+     $3593, 3607, 3613, 3617, 3623, 3631, 3637, 3643, 3659, 3671, 3673, 
+     $3677, 3691, 3697, 3701, 3709, 3719, 3727, 3733, 3739, 3761, 3767, 
+     $3769, 3779, 3793, 3797, 3803, 3821, 3823, 3833, 3847, 3851, 3853, 
+     $3863, 3877, 3881, 3889, 3907, 3911, 3917, 3919, 3923, 3929, 3931, 
+     $3943, 3947, 3967, 3989, 4001, 4003, 4007, 4013, 4019, 4021, 4027, 
+     $4049, 4051, 4057, 4073, 4079, 4091, 4093, 4099, 4111, 4127, 4129, 
+     $4133, 4139, 4153, 4157, 4159, 4177, 4201, 4211, 4217, 4219, 4229, 
+     $4231, 4241, 4243, 4253, 4259, 4261, 4271, 4273, 4283, 4289, 4297, 
+     $4327, 4337, 4339, 4349, 4357, 4363, 4373, 4391, 4397, 4409, 4421, 
+     $4423, 4441, 4447, 4451, 4457, 4463, 4481, 4483, 4493, 4507, 4513, 
+     $4517, 4519, 4523, 4547, 4549, 4561, 4567, 4583, 4591, 4597, 4603, 
+     $4621, 4637, 4639, 4643, 4649, 4651, 4657, 4663, 4673, 4679, 4691, 
+     $4703, 4721, 4723, 4729, 4733, 4751, 4759, 4783, 4787, 4789, 4793, 
+     $4799, 4801, 4813, 4817, 4831, 4861, 4871, 4877, 4889, 4903, 4909, 
+     $4919, 4931, 4933, 4937, 4943, 4951, 4957, 4967, 4969, 4973, 4987, 
+     $4993, 4999, 5003, 5009, 5011, 5021, 5023, 5039, 5051, 5059, 5077, 
+     $5081, 5087, 5099, 5101, 5107, 5113, 5119, 5147, 5153, 5167, 5171, 
+     $5179, 5189, 5197, 5209, 5227, 5231, 5233, 5237, 5261, 5273, 5279, 
+     $5281, 5297, 5303, 5309, 5323, 5333, 5347, 5351, 5381, 5387, 5393, 
+     $5399, 5407, 5413, 5417, 5419, 5431, 5437, 5441, 5443, 5449, 5471, 
+     $5477, 5479, 5483, 5501, 5503, 5507, 5519, 5521, 5527, 5531, 5557, 
+     $5563, 5569, 5573, 5581, 5591, 5623, 5639, 5641, 5647, 5651, 5653, 
+     $5657, 5659, 5669, 5683, 5689, 5693, 5701, 5711, 5717, 5737, 5741, 
+     $5743, 5749, 5779, 5783, 5791, 5801, 5807, 5813, 5821, 5827, 5839, 
+     $5843, 5849, 5851, 5857, 5861, 5867, 5869, 5879, 5881, 5897, 5903, 
+     $5923, 5927, 5939, 5953, 5981, 5987, 6007, 6011, 6029, 6037, 6043, 
+     $6047, 6053, 6067, 6073, 6079, 6089, 6091, 6101, 6113, 6121, 6131, 
+     $6133, 6143, 6151, 6163, 6173, 6197, 6199, 6203, 6211, 6217, 6221, 
+     $6229, 6247, 6257, 6263, 6269, 6271, 6277, 6287, 6299, 6301, 6311, 
+     $6317, 6323, 6329, 6337, 6343, 6353, 6359, 6361, 6367, 6373, 6379, 
+     $6389, 6397, 6421, 6427, 6449, 6451, 6469, 6473, 6481, 6491, 6521, 
+     $6529, 6547, 6551, 6553, 6563, 6569, 6571, 6577, 6581, 6599, 6607, 
+     $6619, 6637, 6653, 6659, 6661, 6673, 6679, 6689, 6691, 6701, 6703, 
+     $6709, 6719, 6733, 6737, 6761, 6763, 6779, 6781, 6791, 6793, 6803, 
+     $6823, 6827, 6829, 6833, 6841, 6857, 6863, 6869, 6871, 6883, 6899, 
+     $6907, 6911, 6917, 6947, 6949, 6959, 6961, 6967, 6971, 6977, 6983, 
+     $6991, 6997, 7001, 7013, 7019, 7027, 7039, 7043, 7057, 7069, 7079, 
+     $7103, 7109, 7121, 7127, 7129, 7151, 7159, 7177, 7187, 7193, 7207, 
+     $7211, 7213, 7219, 7229, 7237, 7243, 7247, 7253, 7283, 7297, 7307, 
+     $7309, 7321, 7331, 7333, 7349, 7351, 7369, 7393, 7411, 7417, 7433, 
+     $7451, 7457, 7459, 7477, 7481, 7487, 7489, 7499, 7507, 7517, 7523, 
+     $7529, 7537, 7541, 7547, 7549, 7559, 7561, 7573, 7577, 7583, 7589, 
+     $7591, 7603, 7607, 7621, 7639, 7643, 7649, 7669, 7673, 7681, 7687, 
+     $7691, 7699, 7703, 7717, 7723, 7727, 7741, 7753, 7757, 7759, 7789, 
+     $7793, 7817, 7823, 7829, 7841, 7853, 7867, 7873, 7877, 7879, 7883, 
+     $7901, 7907, 7919]
+
+      end module
+
+      module macphys
+      use macmath
+c DO not forget to update sim/MACPHYS.h!!!
+c
+c     Update History:
+c     2016/01/12:	from PDG 2014 https://www.google.co.jp/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&ved=0ahUKEwjHw4unsKLKAhUEoJQKHaiPCLgQFggjMAE&url=http%3A%2F%2Fpdg.lbl.gov%2F2014%2Freviews%2Frpp2014-rev-phys-constants.pdf&usg=AFQjCNGXw6APvgkpoTdIRLeC-XV651ZbJg&sig2=-wjwSn5pfl6Juvok0hFqow
+c     2008/03/27:	from CODATA 2006
+c     			http://physics.nist.gov/cuu/Constants/Table/allascii.txt
+c
+c     2003/07/15:	from Particle Data Book
+c
+
+c     Including math constant for permeability of vacuum
+
+c     Speed of light in vacuum:		c
+c     Definition:	299 792 458. m/sec
+      real*8, parameter :: cveloc = 299792458d0
+
+c     Planck's constant:		h
+c     CODATA 2006:	6.626 068 96(33)   x 10^-34 Js
+c     PDG 2014::	6.626 069 57(29)  x 10^-34 Js
+c     CODATA 2018       6.626 070 15       x 10^-34 Js exact
+      real*8, parameter :: plank  = 6.62607015d-34
+
+c     Dirac's constant:			hbar = h / (2 Pi)
+c     PDB 2003:		1.054 571 596(82)  x 10^-34 Js
+c     CODATA 2006:	1.054 571 628(53)  x 10^-34 Js
+c     PDG 2014: 	1.054 571 726(47)  x 10^-34 Js
+c     CODATA 2018:      h (exact) / 2pi
+      real*8, parameter :: plankr = plank/m_2pi
+
+c     Elementary charge:		e
+c     PDB 2003:		1.602 176 462(63)  x 10^-19 C
+c     CODATA 2006:	1.602 176 487(40)  x 10^-19 C
+c     PDG 2014: 	1.602 176 565(35)  x 10^-19 C
+c     CODATA 2018:      1.602 176 634      x 10^-19 C exact
+      real*8, parameter :: elemch = 1.602176634d-19
+
+c     Electron charge in elementary charge unit
+      real*8, parameter :: echarg = 1.0d0
+
+c     Fine-structure constant		\alpha = \mu_0 e^2 c / (2 h)
+c     PDB 2003:		1 / 137.035 999 76(50)
+c     CODATA 2006:	1 / 137.035 999 679(94)
+c     PDG 2014: 	1 / 137.035 999 074(44)
+c     CODATA 2018: 	1 / 137.035 999 084(21)
+      real*8, parameter :: finest = 1.d0 / 137.035999084d0
+
+c     Permeability of vacuum:		\mu_0
+c     Definition:	4 Pi x 10^-7 N A^-2
+c     CODATA 2018:      1.000 000 000 55 * above
+c     CODATA 2018:    4 pi alpha hbar/(e^2 c)
+c      real*8, parameter :: mu0 = 1.00000000055d0 * pi * 4.d-7
+      real*8, parameter :: mu0=m_4pi*finest*plankr/elemch**2/cveloc
+
+c     Permittivity of vacuum:		\epsilon_0 = 1 / (\mu_0 c^2)
+c     Delivered from defintion
+      real*8, parameter :: ep0 = 1.d0 / (mu0 * cveloc**2)
+
+c     Electron mass energy equivalent in eV:	m_e c^2 / e
+c     PDB 2003:		.510 998 902(21) MeV
+c     CODATA 2006:	.510 998 910(13) MeV
+c     PDG 2014: 	.510 998 928(11) MeV
+c     CODATA 2018: 	.510 998 950 00(15) MeV
+      real*8, parameter :: elmass =   0.51099895000d6
+
+c     Proton mass energy equivalent in eV:	m_p c^2 / e
+c     PDB 2003:		938. 271 998(38) MeV
+c     CODATA 2006:	938. 272 013(23) MeV
+c     PDG 2014: 	938. 272 046(21) MeV
+c     CODATA 2018: 	938. 272 088 16(29) MeV
+      real*8, parameter :: prmass = 938.27208816d6
+
+c     Classical electron radius:	r_e = e^2 / (4Pi \epsilon_0 m_e c^2)
+c     					    = (\alpha hbar c) / (m_e c^2)
+c     					    = (e^2 c^2 \mu_0 / 4Pi) / (m_e c^2)
+c     					    = e c^2 * 10^-7 * (e / (m_e c^2))
+c     PDB 2003:		2.817 940 285(??)  x 10^-15 m
+c     CODATA 2006:	2.817 940 2894(58) x 10^-15 m
+c     PDG 2014: 	2.817 940 3267(27) x 10^-15 m
+c      parameter (elradi = finest * plankr * cveloc / (elemch * elmass))
+      real*8, parameter :: elradi =
+     $     finest * plankr * cveloc / (elemch * elmass)
+
+c     Classical proton radius:		r_p = e^2 / (4Pi \epsilon_0 m_p c^2)
+c     					    = (\alpha hbar c) / (m_p c^2)
+c     					    = (e^2 c^2 \mu_0 / 4Pi) / (m_p c^2)
+c     					    = e c^2 * 10^-7 * (e / (m_p c^2))
+c      parameter (prradi = finest * plankr * cveloc / (elemch * prmass))
+      real*8, parameter :: prradi =
+     $     finest * plankr * cveloc / (elemch * prmass)
+
+c     Boltzmann Constant:
+c     PDG2014:          1.380 6488(13) x 10^-23 J/K
+c     COD2018:		1.380 649 × 10−23 J/K exact
+      real*8, parameter :: kboltzman = 1.380649d-23
+
+c     Spin precession coefficient (ge-2)/2
+c     NIST 2014 0.00115965218091
+c     CODATA 2018: (2.002 319 304 362 56(35))/2-1 = 0.001159652181280002
+c
+      real*8 , parameter :: gspin = 0.001159652181280002
+
+      end module
+
       module maccode
 c Do not forget to update sim/MACCODE.h when you change this module!!!!
+      implicit none
       integer*4 , parameter ::
      $     icNULL   =   0, icDRFT   =   1,
      $     icBEND   =   2, icQUAD   =   4, icSEXT   =   6,
@@ -30,7 +300,7 @@ c Do not forget to update sim/MACCODE.h when you change this module!!!!
       integer*4 HTMAX,MAXPNAME,LILISTDUMMY
       parameter(MAXPNAME=32,LILISTDUMMY=3)
       character*(MAXPNAME) NULSTR
-      parameter(HTMAX=2**16,NULSTR='        ')
+      parameter(HTMAX=2**18,NULSTR='        ')
 
       integer*4 pagesz,inipage
       parameter(pagesz=4096/8,inipage=4)
@@ -60,6 +330,7 @@ c$$$      integer*8 , pointer, dimension(:) :: pidval(:)
       real*8, pointer, dimension(:) :: rlist
       integer*4, pointer, dimension(:,:) :: ilist
       integer*1, pointer, dimension(:,:)  :: jlist
+      integer*8, parameter :: i00=int8(0)
 
       interface sethtb
         module procedure sethtb4,sethtb8
@@ -73,18 +344,19 @@ c$$$      integer*8 , pointer, dimension(:) :: pidval(:)
         character*(*) , intent(in) :: token
         integer*8, target, intent(in):: ival
         integer*4 , intent(in) :: type
-        integer*4 idx,hsrch,lenw
+        integer*4 idx,hsrch
         sethtb8=0
      
-        idx= hsrch(token(:lenw(token)))
+        idx= hsrch(token(:len_trim(token)))
         if(idx .le. 0 .or. idx .gt. HTMAX) then
           call errmsg('sethtb8'
-     &         ,'illegal index value for sethashtble'
+     &         ,'illegal index value for sethashtble: '//
+     $         token(:len_trim(token))
      &         , 0,16)
         else
           idtype(idx)=type
           if(type .eq. icRSVD) then
-            idval(idx)=transfer(c_loc(ival),int8(0))/8
+            idval(idx)=transfer(c_loc(ival),i00)/8
           else
             idval(idx)=ival
           endif
@@ -110,6 +382,7 @@ c$$$      integer*8 , pointer, dimension(:) :: pidval(:)
 
 c     Don't confuse, Emacs. This is -*- fortran -*- mode!
       module tfcbk
+      implicit none
       integer*4, parameter:: maxgeneration=2**30-1,maxlevele=2**14,
      $     nsymhash=2047,nslots=32,maxlbuf=2**22
       real*8 dinfinity,dnotanumber
@@ -129,10 +402,12 @@ c     Don't confuse, Emacs. This is -*- fortran -*- mode!
       end module
 
       module tfmem
+      use maccbk, only:i00
       implicit none
       integer*8, parameter :: mpsize=2**22,kcpklist0=0,maxstack=2**25,
      $     minstack=2**18
-      integer*4, parameter :: nindex=64,mhash=32767,
+      integer*8 , parameter :: mhash=32767
+      integer*4, parameter :: nindex=64,
      $     minseg0=9,minseg1=16,minseg2=16
       integer*4, parameter :: ncbk = 2**16
       integer*8, parameter :: kcpoffset = 0
@@ -162,7 +437,7 @@ c     Don't confuse, Emacs. This is -*- fortran -*- mode!
         use iso_c_binding
         implicit none
         type (sad_descriptor), target, intent(in) :: k
-        dsad_loc=(transfer(c_loc(k),int8(0))-kcpklist0)/8
+        dsad_loc=(transfer(c_loc(k),i00)-kcpklist0)/8
         return
         end function
 
@@ -170,7 +445,7 @@ c     Don't confuse, Emacs. This is -*- fortran -*- mode!
         use iso_c_binding
         implicit none
         integer*8, target, intent(in) :: k
-        ksad_loc=(transfer(c_loc(k),int8(0))-kcpklist0)/8
+        ksad_loc=(transfer(c_loc(k),i00)-kcpklist0)/8
         return
         end function
 
@@ -178,7 +453,7 @@ c     Don't confuse, Emacs. This is -*- fortran -*- mode!
         use iso_c_binding
         implicit none
         integer*4, target, intent(in):: i
-        isad_loc=(transfer(c_loc(i),int8(0))-kcpklist0)/8
+        isad_loc=(transfer(c_loc(i),i00)-kcpklist0)/8
         return
         end function
 
@@ -186,7 +461,7 @@ c     Don't confuse, Emacs. This is -*- fortran -*- mode!
         use iso_c_binding
         implicit none
         real*8, target, intent(in):: x
-        rsad_loc=(transfer(c_loc(x),int8(0))-kcpklist0)/8
+        rsad_loc=(transfer(c_loc(x),i00)-kcpklist0)/8
         return
         end function
 
@@ -197,9 +472,9 @@ c     Don't confuse, Emacs. This is -*- fortran -*- mode!
         type (c_ptr) cp
         integer*4, save::lps=0
         integer*4 getpagesize
-c        kcpklist0=transfer(c_loc(kdummy),int8(0))
+c        kcpklist0=transfer(c_loc(kdummy),i00)
 c        write(*,*)'tfcbkinit ',kcpklist0,2**31
-c        kcpklist0=transfer(c_loc(kdummy),int8(0))-kcpoffset-8
+c        kcpklist0=transfer(c_loc(kdummy),i00)-kcpoffset-8
         if(lps .eq. 0)then
           lps=getpagesize()
         endif
@@ -226,8 +501,7 @@ c$$$        pidval=>idval
         integer*8 ka,ic
         allocate(sadalloc(ncbk))
         allocate(sadalloc(1)%ca(nindex*2+mhash+16))
-        ka=transfer(c_loc(sadalloc(1)%ca(1)),int8(0))
-        kfirstalloc=ka
+        ka=transfer(c_loc(sadalloc(1)%ca(1)),i00)
 c     kcpklist0=0
         call tfcbkinit
         icp=ksad_loc(sadalloc(1)%ca(1))
@@ -247,6 +521,7 @@ c     kcpklist0=0
         klist(icsep)=icsep
         nmem=0
         nnet=0
+        kfirstalloc=ktaloc(3)
         return
         end subroutine
 
@@ -464,13 +739,14 @@ c     endif
 
       module tfcode
       use tfmem, only:sad_descriptor
+      implicit none
       real*8, parameter :: xinfinity=1.7976931348623157D308
       integer*4, parameter :: ntfoper=0,ntfreal=1,ntflist=3,ntflistr=4,
      $     ntfstkseq=5,
      $     ntfstk=6,ntfstring=101,ntfsymbol=201,ntfpat=203,ntfarg=205,
      $     ntffun=ntfoper,ntfdef=ntfsymbol
       integer*4, parameter :: nfunif=39,nfunlength=20,nfunreppart=22,
-     $     nfundo=29,
+     $     nfundo=29,nfunwhich=126,nfunswitch=91,
      $     nfunmodule=34,nfunblock=35,nfunswicases=37,
      $     nfunselect=41,nfunappend=44,
      $     nfunprepend=45,nfunposition=59,nfunthread=83,nfunscan=96,
@@ -538,7 +814,7 @@ c     endif
      $     irtcgoto=-6,irtcabort=-7
       integer*8 ktfoper,ktflist,ktfstring,ktfsymbol,ktfpat,ktfobj,
      $     ktfmask,ktamask,ktrmask,ktfnull,ktfnr,ktfref,ktfother,
-     $     ktomask,ktftrue,ktfnan,ktfenan
+     $     ktomask,ktftrue,ktfnan,ktfenan,ktfenanb
       parameter (
      $     ktfnull  =int8(z'fff0000000000000'),
      $     ktfother =int8(z'fff2000000000000'),
@@ -559,7 +835,8 @@ c     endif
      $     ktfenan  =int8(z'7ff0000000000000'),
      $     ktfenanb =int8(z'000fffffffffffff')
      $     )
-      integer*4 , parameter :: mbody = 2**12
+      integer*4 , parameter :: mbody = 2**8
+      integer*4 , parameter :: mbody1 = 2**8
 
       type sad_object
       sequence
@@ -567,7 +844,7 @@ c     endif
       type (sad_descriptor) alloc
       integer*4 ref,nl
       integer*8 body(1:0)
-      type (sad_descriptor) dbody(0:mbody)
+      type (sad_descriptor) dbody(0:mbody1)
       end type
 
       type sad_list
@@ -580,7 +857,7 @@ c     endif
       real*8 rbody(1:0)
       complex*16 cbody(1:0)
       type (sad_descriptor) dbody(1:0)
-      integer*8 body(1:mbody)
+      integer*8 body(1:mbody1)
       end type
 
       type sad_dlist
@@ -594,7 +871,7 @@ c     endif
       real*8 rbody(1:0)
       complex*16 cbody(1:0)
       integer*8 body(1:0)
-      type (sad_descriptor) dbody(1:mbody)
+      type (sad_descriptor) dbody(1:mbody1)
       end type
 
       type sad_rlist
@@ -608,7 +885,7 @@ c     endif
       complex*16 cbody(1:0)
       integer*8 body(1:0)
       type (sad_descriptor) dbody(1:0)
-      real*8 rbody(1:mbody)
+      real*8 rbody(1:mbody1)
       end type
 
       type sad_complex
@@ -667,7 +944,7 @@ c     endif
       integer*1 istr(1:0)
       integer*8 kstr(1:0)
 c size limitation due to gfortran 7 on macOS ???
-      character*(mbody) str
+      character*(mbody1) str
       end type
 
       type sad_namtbl
@@ -703,6 +980,7 @@ c size limitation due to gfortran 7 on macOS ???
       use tfcode
       use maccbk
       use tfmem, only:sad_loc,ksad_loc,ktaloc,tfree
+      implicit none
       public
       integer*8 ispbase
       integer*4 mstk,isp,ivstkoffset,ipurefp,napuref,isporg
@@ -762,7 +1040,7 @@ c      equivalence (ktastk(  RBASE),ilist(1,RBASE))
       interface ktfreallistq
         module procedure ktfreallistqo_rlist,
      $     ktfreallistqo_dlist,ktfreallistqk,ktfreallistqd,
-     $     ktfreallistqk_rlist
+     $     ktfreallistqk_rlist,ktfreallistqd_rlist
       end interface
 
       interface ktfnonreallistqo
@@ -874,6 +1152,10 @@ c      equivalence (ktastk(  RBASE),ilist(1,RBASE))
 
       interface ktfobjq
         module procedure ktfobjqk,ktfobjqd
+      end interface
+
+      interface ktaobj
+        module procedure ktaobjk,ktaobjd
       end interface
 
       interface tfmakerulestk
@@ -1004,7 +1286,7 @@ c     $           n,i,istat
           else
             write(*,*)'Negative allocation - retry: ',i,ktfsadalloc
           endif
-        enddo          
+        enddo
         if(icbk .ge. ncbk)then
           write(*,*)'ktfsadalloc too many allocations: ',icbk
           call abort
@@ -1030,8 +1312,8 @@ c     $           n,i,istat
                     jcbk=jcbk-1
                   endif
                 else
-                  kcbk(2,j)=kcbk(2,k)
-                  kcbk(3,j)=kcbk(2,k)
+                  kcbk(2:3,j)=kcbk(2,k)
+c                  kcbk(3,j)=kcbk(2,k)
                   kcbk(:,k)=0
                 endif
                 return
@@ -1042,8 +1324,7 @@ c     $           n,i,istat
             do k=1,jcbk
               if(kcbk(2,k) .eq. kcbk(1,j)+1)then
                 if(k .lt. j)then
-                  kcbk(2,k)=kcbk(2,j)
-                  kcbk(3,k)=kcbk(3,j)
+                  kcbk(2:3,k)=kcbk(2:3,j)
                   kcbk(:,j)=0
                   if(j .eq. jcbk)then
                     jcbk=jcbk-1
@@ -1444,7 +1725,7 @@ c     $           n,i,istat
         return
         end function ktfaddrk
 
-        integer*8 function ktfaddrd(k)
+        integer*8 pure function ktfaddrd(k)
         implicit none
         type (sad_descriptor) , intent(in)::k
         ktfaddrd=iand(ktamask,k%k)
@@ -1488,6 +1769,30 @@ c     $           n,i,istat
         return
         end function ktfobjqd
 
+        integer*8 pure elemental function ktaobjk(k) result(ka)
+        use tfmem,only:kfirstalloc
+        implicit none
+        integer*8 , intent(in)::k
+        if(iand(ktomask,k) .eq. ktfobj)then
+          ka=iand(ktamask,k)
+        else
+          ka=kfirstalloc+1
+        endif
+        return
+        end function ktaobjk
+
+        integer*8 pure elemental function ktaobjd(k) result(ka)
+        use tfmem,only:kfirstalloc
+        implicit none
+        type (sad_descriptor) , intent(in)::k
+        if(iand(ktomask,k%k) .eq. ktfobj)then
+          ka=iand(ktamask,k%k)
+        else
+          ka=kfirstalloc+1
+        endif
+        return
+        end function ktaobjd
+
         logical*4 function ktfnonobjq(ka)
         implicit none
         integer*8 , intent(in)::ka
@@ -1513,7 +1818,14 @@ c     $           n,i,istat
      $       iand(k,ktfenanb) .ne. 0 .and. k .ne. kinfinity .and.
      $       k .ne. kminfinity
         return
-        end
+        end function 
+
+        logical*4 function ktfenanzeroq(x)
+        implicit none
+        real*8 , intent(in)::x
+        ktfenanzeroq=x .eq. 0.d0 .and. ktfenanq(x)
+        return
+        end function 
 
         logical*4 function ktfrealq_k(k,v)
         implicit none
@@ -2298,9 +2610,21 @@ c     $           n,i,istat
         logical*4 function ktfreallistqd(ka)
         implicit none
         type (sad_descriptor) , intent(in)::ka
-        ktfreallistqd=iand(ilist(2,ka%k-3),lnonreallist) .eq. 0
+        ktfreallistqd=iand(ilist(2,ktfaddrd(ka)-3),lnonreallist) .eq. 0
         return
         end function ktfreallistqd
+
+        logical*4 function ktfreallistqd_rlist(ka,kl)
+        implicit none
+        type (sad_rlist), pointer, intent(out) :: kl
+        type (sad_descriptor) , intent(in)::ka
+        ktfreallistqd_rlist=
+     $       iand(ilist(2,ktfaddrd(ka)-3),lnonreallist) .eq. 0
+        if(ktfreallistqd_rlist)then
+          call loc_sad(ktfaddrd(ka),kl)
+        endif
+        return
+        end function ktfreallistqd_rlist
 
         logical*4 function ktfnonreallistq(ka)
         implicit none
@@ -2579,10 +2903,10 @@ c     $           n,i,istat
                 kaai=ktfaddr(kai%k)
                 kapi=ktfaddr(kpi%k)
                 if(ilist(1,kapi-1) .ge. ilist(1,kaai-1))then
-                  call tflocal1(kai)
+                  call tflocal1(kai%k)
                   lista%dbody(i)=dtfcopy1(kpi)
                 else
-                  call tflocal1(kpi)
+                  call tflocal1(kpi%k)
                   listp%dbody(i)=dtfcopy1(kai)
                 endif
                 cycle
@@ -2812,6 +3136,13 @@ c     $           n,i,istat
         return
         end function cfromr
 
+        subroutine incr1i(ia)
+        implicit none
+        integer*4 ia(:)
+        ia=ia+1
+        return
+        end
+
         integer*8 function ktfcopy1(k)
         implicit none
         integer*8 , intent(in)::k
@@ -2826,13 +3157,13 @@ c     $           n,i,istat
         implicit none
         integer*8 , intent(in)::k
         integer*8 ka
-        logical*4 , intent(out)::d
-        d=ktfobjq(k)
-        if(d)then
+        logical*4 , intent(inout)::d
+        if(iand(ktomask,k) .eq. ktfobj)then
+          d=.true.
           ka=iand(ktamask,k)
           ilist(1,ka-1)=ilist(1,ka-1)+1
         else
-          d=ktfnonrealq(k)
+          d=d .or. ktfnonrealq(k)
         endif
         ktfcopyd=k
         return
@@ -2842,18 +3173,37 @@ c     $           n,i,istat
         implicit none
         integer*8 , intent(in)::k
         integer*8 ka
-        if(ktfobjq(k))then
-          ka=ktfaddr(k)
+        if(iand(ktomask,k) .eq. ktfobj)then
+          ka=iand(ktamask,k)
           ilist(1,ka-1)=ilist(1,ka-1)+1
         endif
         ktfcopy=k
         return
         end function
 
+        subroutine ktfcopym(k)
+        implicit none
+        integer*8 ,intent(in):: k(:)
+        ilist(1,ktaobj(k)-1)=ilist(1,ktaobj(k)-1)+1
+        return
+        end
+
+        subroutine dtfcopym(d)
+        implicit none
+        type(sad_descriptor) ,intent(in):: d(:)
+        ilist(1,ktaobj(d)-1)=ilist(1,ktaobj(d)-1)+1
+        return
+        end
+
         type (sad_descriptor) function dtfcopy(d)
         implicit none
         type (sad_descriptor) , intent(in)::d
-        dtfcopy%k=ktfcopy(d%k)
+        integer*8 ka
+        if(iand(ktomask,d%k) .eq. ktfobj)then
+          ka=iand(ktamask,d%k)
+          ilist(1,ka-1)=ilist(1,ka-1)+1
+        endif
+        dtfcopy=d
         return
         end function
 
@@ -3038,9 +3388,8 @@ c     write(*,*)'with ',ilist(1,ka-1),ktfaddr(klist(ka-2))
         type (sad_descriptor) function kxcomposer(isp1)
         implicit none
         integer*4 , intent(in)::isp1
-        integer*8 ktfcrelistr
         kxcomposer%k=ktflist+
-     $       ktfcrelistr(isp-isp1,ktastk(isp1+1),ktastk(isp1))
+     $       ktfcrelistr(ktastk(isp1+1:isp),dtastk(isp1))
         return
         end function
 
@@ -3264,7 +3613,7 @@ c     write(*,*)'with ',ilist(1,ka-1),ktfaddr(klist(ka-2))
         return
         end function
 
-        type (sad_descriptor) function dfromk(k)
+        type (sad_descriptor) pure function dfromk(k)
         implicit none
         integer*8 , intent(in)::k
         dfromk%k=k
@@ -3302,9 +3651,37 @@ c     write(*,*)'with ',ilist(1,ka-1),ktfaddr(klist(ka-2))
         integer*4 , intent(in)::m
         integer*8 , intent(in)::ks(m)
         kxcrelistm=kxaaloc(-1,m,kl)
-        call tfcrelista(m,ks,kh,kl)
+        call tfcrelista(ks,kh,kl)
         return
         end function
+
+        subroutine tfcrelista(ks,kh,list)
+        implicit none
+        type (sad_descriptor) ,intent(in):: kh
+        type (sad_dlist) ,intent(inout):: list
+        integer*4 i
+        integer*8 ,intent(in):: ks(:)
+        logical*4 d
+        list%head=dtfcopy(kh)
+        d=.false.
+        do i=1,size(ks)
+          list%dbody(i)%k=ktfcopyd(ks(i),d)
+        enddo
+        if(d)then
+          list%attr=ior(list%attr,lnonreallist)
+        endif
+        return
+        end subroutine
+      
+        integer*8 function ktfcrelistr(ks,kh)
+        implicit none
+        type (sad_descriptor) ,intent(in):: kh
+        type (sad_dlist), pointer ::kl
+        integer*8 ,intent(in):: ks(:)
+        ktfcrelistr=ktaalocr(-1,size(ks),kl)
+        call tfcrelista(ks,kh,kl)
+        return
+        end
 
         integer*8 function ktsalocb(mode,string,leng)
         integer*8 ktfaloc,l
@@ -3618,22 +3995,23 @@ c     write(*,*)'with ',ilist(1,ka-1),ktfaddr(klist(ka-2))
         integer*4 , intent(in)::l
         integer*8 ktfsymbolc
         character , intent(in)::name(l)
-        ktfsymbolz=ktfsymbolc(name,l,int8(0))
+        ktfsymbolz=ktfsymbolc(name,l,i00)
         if(present(symd))then
           call loc_symdef(ktfsymbolz,symd)
         endif
         return
         end function
 
-        subroutine tfsydef(sym,symx)
+        function tfsydef(sym)
         implicit none
+        type (sad_symbol), pointer :: tfsydef
         type (sad_descriptor) kx
         type (sad_symbol) , intent(in)::sym
-        type (sad_symbol), pointer, intent(out) :: symx
+c        type (sad_symbol), pointer, intent(out) :: symx
         call tfsydefg(sym%loc,kx,sym%gen)
-        call loc_sad(ktfaddrd(kx),symx)
+        call loc_sad(ktfaddrd(kx),tfsydef)
         return
-        end subroutine
+        end function
 
         type (sad_descriptor) function dxsycopy(sym)
         implicit none
@@ -3768,10 +4146,10 @@ c     write(*,*)'with ',ilist(1,ka-1),ktfaddr(klist(ka-2))
         return
         end function
 
-        subroutine tfclonelist(list,listc)
+        function tfclonelist(list) result(listc)
         implicit none
+        type (sad_dlist), pointer:: listc
         type (sad_dlist), target, intent(in) :: list
-        type (sad_dlist), pointer, intent(out) :: listc
         integer*4 i
         if(ktfovrwrtq(list))then
           listc=>list
@@ -3789,12 +4167,12 @@ c     write(*,*)'with ',ilist(1,ka-1),ktfaddr(klist(ka-2))
         endif
         listc%attr=ior(listc%attr,ktoberebuilt)
         return
-        end subroutine
+        end function
 
-        subroutine tfduplist(list,listc)
+        function tfduplist(list) result(listc)
         implicit none
+        type (sad_dlist), pointer :: listc
         type (sad_dlist), target, intent(in) :: list
-        type (sad_dlist), pointer, intent(out) :: listc
         integer*4 i
         call loc_dlist(ktaaloc(-1,list%nl),listc)
         listc%attr=list%attr
@@ -3807,7 +4185,7 @@ c     write(*,*)'with ',ilist(1,ka-1),ktfaddr(klist(ka-2))
           enddo
         endif
         return
-        end subroutine
+        end function
 
         recursive subroutine tfgetllstkall_dlist(list)
         implicit none
@@ -3895,7 +4273,7 @@ c     call tmov(klist(ka+1),ktastk(isp+1),m)
         integer*8 kp
         integer*4 isp0
         integer*4 , intent(out)::irtc
-        logical*4 , intent(in)::ev
+        logical*4 , intent(out)::ev
         isp=isp+1
         isp0=isp
         dtastk(isp)=kl%head
@@ -4160,5 +4538,27 @@ c     call tmov(klist(ka+1),ktastk(isp+1),m)
         enddo
         return
         end subroutine
+
+        subroutine setompnumthreads(isp1,kx,irtc)
+        implicit none
+        integer*4 ,intent(in):: isp1
+        integer*4 ,intent(out):: irtc
+        integer*4 itfmessage,iv
+        type (sad_descriptor),intent(out):: kx
+        if(isp .ne. isp1+1)then
+          irtc=itfmessage(9,'General::narg','"1"')
+          return
+        elseif(ktfnonrealq(dtastk(isp),iv))then
+          irtc=itfmessage(9,'General::wrongtype','"Real"')
+          return
+        elseif(iv .le. 0)then
+          irtc=itfmessage(9,'General::wrongval','">= 1"')
+          return
+        endif
+c        call omp_set_num_threads(iv)
+        kx=dfromr(dble(iv))
+        irtc=0
+        return
+        end
 
       end module
