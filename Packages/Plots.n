@@ -1,4 +1,4 @@
-(* Plots 7/31/2017 *)
+(* Plots 8/6/2019 *)
 
 Show;
 
@@ -10,7 +10,7 @@ SetAttributes[{Contours,MeshRange,ColorFunction,ColorFunctionScaling,
   MaxBend,PlotPoints,PlotDivision,FunctionLabel,ResultLabel,RaiseFit,
   Signal,GoodnessOfFit,ChiSquare,ConfidenceInterval,ColumnTags,MeshStyle,
   PlotStyle,Columns,ColumnOffset,Bins,BinRange,ColumnLabel,Mesh,MeshColor,
-  FitParameters},
+  FitParameters,PlotNull,BelowFrame},
   Constant];
 
 BeginPackage[Plots`]
@@ -38,19 +38,20 @@ With[{CP$def={Scale->{Linear,Linear},
   FrameTicks->Automatic,Initialize->True,
   FrameLabel->{"","","",""},DisplayFunction:>$DisplayFunction,
   PlotLabel->"",Prolog->{},Epilog->{},
+  PlotNull->False,
   Background->"#ffffff"},
   r=(Rule|RuleDelayed)[Graphics$Options,_]},
 
   ColumnPlot[ll_,opt___]:=Module[
     {n=Length[ll],d=Dimensions[ll],nc,ns,
       coff,cm,cw,x,y,cx,g,ref,of,pc,ms,pcx,msx,pr,or,sc,gopt,ld,
-      cla,cl,ft,ts,tis,tx,t,tag,txs,
+      cla,cl,ft,ts,tis,tx,t,tag,txs,pn,
       op=Override[opt,CP$def]
       },
-    {coff,ref,of,pc,ms,or,cl,ft,tis,tag,txs}={ColumnOffset,Reference,
+    {coff,ref,of,pc,ms,or,cl,ft,tis,tag,txs,pn}={ColumnOffset,Reference,
       DisplayFunction,
       FillColor,MeshStyle,Orientation,ColumnLabel,FrameTicks,
-      TickSize,ColumnTags,TextSize}/.op;
+      TickSize,ColumnTags,TextSize,PlotNull}/.op;
     ld=Length[d];
     {nc,ns,ymin,ymax}=Switch[ld,
       1,
@@ -78,7 +79,7 @@ With[{CP$def={Scale->{Linear,Linear},
         ft=False;
         cla=Flatten[cl];
         cla=Join[cla,Table["",{Max[n*nc-Length[cla],0]}]];
-	tx=WindowScaled[If[$DisplayFunction===CanvasDrawer,2.3,0.8]];
+        tx=WindowScaled[If[$DisplayFunction===TopDrawer,0.8,2.3]];
         tis=0;
         ts=Max[Min[2,6/Max[1,StringLength/@cla],12/n/nc],0.9]*txs,
         cl===Automatic,
@@ -100,6 +101,7 @@ With[{CP$def={Scale->{Linear,Linear},
       Table[Null,{n*nc}],
       StandardForm[Table[tag//i,{i,n*nc}]]];
     cx=Thread[{Flatten[cx,1],Flatten[ll,1],pcx,msx,cla,t}];
+    If[~pn,cx=cx/.{_,0,__}:>Null[]];
     sc=Flatten[{Linear,Scale/.op}][[{-2,-1}]];
     gopt=Override[Scale->sc,DataRange->dr,
       PlotRange->pr,
@@ -162,34 +164,31 @@ With[{CP$def={Scale->{Linear,Linear},
     g
     ]];
 
-With[{def={
-	PlotStyle->ColumnPlot,Orientation->Vertical,
-  	Bins:>Max[5,Min[100,Sqrt[Max[Length/@l]]]],
-  	Dashing->{{1},{0.75,0.25},{0.4, 0.15},{0.2,0.1},{0.1,0.08},
-	         {0.8,0.08, 0.08, 0.08},{0.4,0.08,0.08,0.08}},
-  	PlotColor:>If[$DisplayFunction===CanvasDrawerr,
-		{"black","tomato","dark slate blue","forest green","gray",
-		          "magenta","cyan","yellow"},
-      		{"black","red","blue","green","gray","magenta","cyan","yellow"}
-       		]
-      }},
+With[{def={PlotStyle->ColumnPlot,Orientation->Vertical,
+  Bins:>Max[5,Min[100,Sqrt[Max[Length/@l]]]],
+  Dashing->{{1},{0.75,0.25},{0.4, 0.15},{0.2,0.1},{0.1,0.08},
+  {0.8,0.08, 0.08, 0.08},{0.4,0.08,0.08,0.08}},
+  PlotColor:>If[$DisplayFunction===TopDrawer,
+    {"black","red","blue","green","gray","magenta","cyan","yellow"},
+    {"black","tomato","dark slate blue","forest green","gray",
+      "magenta","cyan","yellow"}]},fact=1.00001},
 
   HistoPlot[l_,opt___]:=HistoPlot[{l},opt];
   HistoPlot[l:{{_,_},___},opt___]:=HistoPlot[{l},opt];
   HistoPlot[l:{_List,___},opt___]:=Module[{min,max,
       {nc,ps}={Bins,PlotStyle}/.{opt}/.def,
       dc,col,hist,x,histall,ll=Length[l],da,pc,or},
+    nc=Round[nc];
     If[Head[l[[1,1]]]===List,
-      {min,max}=BinRange/.{opt}/.
-      BinRange->MinMax[l[[,,1]]]*{1,1.00001};
-      dc=(max-min)/nc;
+      {min,max}=BinRange/.{opt}/.BinRange->MinMax[l[[,,1]]];
+      dc=(max-min)/nc*fact;
       histall=(
         col=Select[Thread[{Floor[(#[[,1]]-min)/dc]+1,#[[,2]]}],(1<=First[#]<=nc)&];
         hist=Table[0,{nc}];
         Scan[(hist[[First[#]]]+=Second[#])&,col];
         hist)&/@l,
-      {min,max}=BinRange/.{opt}/.BinRange->MinMax[l]*{1,1.00001};
-      dc=(max-min)/nc;
+      {min,max}=BinRange/.{opt}/.BinRange->MinMax[l];
+      dc=(max-min)/nc*fact;
       histall=(
         col=Select[Floor[(#-min)/dc]+1,(1<=#<=nc)&];
         hist=Table[0,{nc}];
@@ -344,6 +343,7 @@ CP$ColorScale[cs_,cf_,cfs_,pr_,ar_,ncs_,opt___]:=
         FrameTicks->{None,None,None,True},
         FrameLabel->{"",""},
         FrameColor->"white",
+        BelowFrame->False,
         TickSize->-0.1,
         MeshRange->{Default,pr},opt],Position->Right[]]];
 
@@ -375,14 +375,14 @@ With[{def={PlotRange->Automatic,MeshRange->Default,
   Smoothing->0,
   DisplayFunction->Default,
   AspectRatio->1,ContourColorFunction->Automatic,
-  Contours->10,Prolog->{},Epilog->{}},
+  Contours->10,Prolog->{},Epilog->{},BelowFrame->True},
   ncs=16},
 
   ListContourPlot[l0_,opt___]:=Module[{
     gr,op,gs,prg,l=l0,
-    {pr,mr,lc,cf,cfs,cs,df,nc,ar,sm}={PlotRange,MeshRange,ContourColorFunction,
+    {pr,mr,lc,cf,cfs,cs,df,nc,ar,sm,bf}={PlotRange,MeshRange,ContourColorFunction,
       ColorFunction,ColorFunctionScaling,ColorScale,
-      DisplayFunction,Contours,AspectRatio,Smoothing}/.{opt}/.def},
+      DisplayFunction,Contours,AspectRatio,Smoothing,BelowFrame}/.{opt}/.def},
     Do[l=LDP$Smooth[l],{sm}];
     Block[{nx,ny,mesh},
       {nx,ny}=Dimensions[l];
@@ -410,7 +410,7 @@ With[{def={PlotRange->Automatic,MeshRange->Default,
       gs=CP$ColorScale[cs,cf,cfs,pr,ar,ncs,opt];
       op=Override[AspectRatio->ar,PlotRange->prg,
         DataRange->Thread[{mesh[{1,1}],mesh[{nx,ny}]}],opt,def];
-      gr=Graphics[Flatten[{Prolog/.op,CP$FindContour[l,pr,nc,cf,cfs,lc],gs,Epilog/.op}],op];
+      gr=Graphics[Flatten[{Prolog/.op,CP$FindContour[l,pr,nc,cf,cfs,lc,bf],gs,Epilog/.op}],op];
       ];
     If[df===Default,Show[gr,op]];
     gr]];
@@ -419,17 +419,17 @@ With[{def={PlotRange->Automatic,MeshRange->Default,
 With[{def={PlotRange->Automatic,MeshRange->Default,
   ColorFunction->Automatic,DisplayFunction->Default,
   ColorFunctionScaling->True,
-  Smoothing->1,
+  Smoothing->1,BelowFrame->True,
   ColorScale->True,
   AspectRatio->1,Mesh->False,MeshColor->Automatic,Prolog->{},Epilog->{}},
   ncs=16},
 
   ListDensityPlot[l0_,opt___]:=Module[{l=l0,
     gr,op,l1,g,gs,prg,
-    {pr,mr,cf,cfs,df,ar,ms,mc,cs,sm}={PlotRange,MeshRange,
+    {pr,mr,cf,cfs,df,ar,ms,mc,cs,sm,bf}={PlotRange,MeshRange,
       ColorFunction,ColorFunctionScaling,
       DisplayFunction,AspectRatio,Mesh,MeshColor,
-      ColorScale,Smoothing}/.opt/.def},
+      ColorScale,Smoothing,BelowFrame}/.opt/.def},
     Do[l=LDP$Smooth[l],{sm}];
     Block[{nx,ny,mesh},
       {nx,ny}=Dimensions[l];
@@ -461,20 +461,21 @@ With[{def={PlotRange->Automatic,MeshRange->Default,
       g=If[ms===True,
         Table[
           Rectangle[mesh[{i,j}],mesh[{i+1,j+1}],FillColor->cf[l1[[i,j]]],
-            PlotColor->mc[l1[[i,j]]]],
+            PlotColor->mc[l1[[i,j]]],BelowFrame->bf],
           {i,nx},{j,ny}],
         Table[
           Rectangle[mesh[{i,j}],mesh[{i+1,j+1}],FillColor->cf[l1[[i,j]]],
-            PlotColor->cf[l1[[i,j]]]],
+            PlotColor->cf[l1[[i,j]]],BelowFrame->bf],
           {i,nx},{j,ny}]];
       gs=CP$ColorScale[cs,cf,cfs,pr,ar,ncs,opt];
-      op=Override[AspectRatio->ar,PlotRange->prg,DataRange->Thread[{mesh[{1,1}],mesh[{nx,ny}+1]}],opt,def]
+      op=Override[AspectRatio->ar,PlotRange->prg,
+        DataRange->Thread[{mesh[{1,1}],mesh[{nx,ny}+1]}],opt,def]
       ];
     g=Graphics[Flatten[{Prolog/.op,g,gs,Epilog/.op}],op];
     If[df===Default,Show[g,op]];
     g]];
 
-CP$FindContour[l_,pr_,n_,cf_,cfs_,lc_]:=Module[
+CP$FindContour[l_,pr_,n_,cf_,cfs_,lc_,bf_]:=Module[
   {l1f,i,j,k,dl,min,max,g,ml,gp,gl,b,
     i1,j1,f0,f1,f2,f3,
     l1=Restrict[(l-pr[[1]])/(pr[[2]]-pr[[1]])*n+0.5,0.5,n+0.5]},
@@ -521,9 +522,12 @@ CP$FindContour[l_,pr_,n_,cf_,cfs_,lc_]:=Module[
     {gp,gl}=CP$GetLine[l1,n,cf];
     g=Flatten[{
       If[cf<=>Null,
-        {Rectangle[mesh[{1,1}],mesh[{nx,ny}],PlotColor->"",FillColor->cf[0]],
+        {Rectangle[mesh[{1,1}],mesh[{nx,ny}],PlotColor->"",FillColor->cf[0],
+          BelowFrame->bf],
           Polygon[Thread[mesh[Thread[#2]]],
-            PlotColor->"",FillColor->If[cfs,cf[#/n],cf[#/n*(pr[[2]]-pr[[1]])+pr[[1]]]]]&@@[gp,{1}]},
+            BelowFrame->bf,
+            PlotColor->"",
+            FillColor->If[cfs,cf[#/n],cf[#/n*(pr[[2]]-pr[[1]])+pr[[1]]]]]&@@[gp,{1}]},
         Null[]],
       If[lc<=>Null,
         With[{c=lc[#2/n]},
@@ -639,6 +643,7 @@ CP$JoinLine[{l:{x_,m___,y_},c_},k_]:=Module[{lx=contb[k][x],ly=contb[k][y],a},
 CP$GetLine[l1_,n_,cf_]:=Module[
   {l=Extract[Delete[?contl,{{1,1},{1,-1}}],{{1,,2},{1,,1,0,1}}],
     ls,lc,ls1,k,t=Table[{k,_},{k,n}]},
+  If[l==={},Return[{}]];
   l=Thread[Partition[l,Length[l]/2]];
   l=If[contl[#2][#[[1,1]]]<=>{{}},
     If[#[[1,1]]<=>#[[1,-1]],contl[#2][#[[1,-1]]]=.];

@@ -1,23 +1,28 @@
       integer*4 function itfgeto(kx)
       use tfstk
       use tfcsi
+      use tfrbuf
       implicit none
-      type (sad_descriptor) kx
+      type (sad_descriptor) ,intent(out):: kx
       integer*4 irtc, m
-      if(ipoint .ge. lrecl)then
+      if(ipoint .gt. lrecl .or. ipoint .le. 0)then
         itfgeto=-1
         kx%k=ktfoper+mtfnull
         return
       endif
       m=0
-      call tfeval(buffer(1:lrecl),lrecl,ipoint,m,kx,.true.,irtc)
-c      call tfdebugprint(kx,'itfgeto',3)
-c      write(*,*)'with ',irtc,kerror
+c      write(*,*)'itfgeto ',lrecl,ipoint,buffer(max(ipoint-16,1):ipoint)
+      call tfeval(buffer(1:lrecl),ipoint,m,kx,.true.,irtc)
+c      if(lfni .lt. 100)then
+c        call tfdebugprint(kx,'itfgeto',3)
+c        write(*,'(a,10i12)')'with ',lfni,irtc,ipoint,lrecl,m,
+c     $       kerror,ktfaddr(kerror)
+c      endif
       ipoint=m
       if(irtc .eq. 0)then
         itfgeto=0
       elseif(irtc .gt. 0 .and. kerror .ne. 0)then
-        if(rlist(ktfaddr(kerror)+1) .ge. 1000.d0)then
+       if(rlist(ktfaddr(kerror)+1) .ge. 1000.d0)then
           itfgeto=-3
         else
           itfgeto=-2
@@ -31,25 +36,26 @@ c      write(*,*)'with ',irtc,kerror
 
       integer*4 function itfpeeko(kx,next)
       use tfstk
-      use tfcsi
+      use tfcsi, only:ipoint
       implicit none
-      type (sad_descriptor) kx
-      integer*4 next,ip0,itfgeto
-      ip0=icsmrk()
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(out):: next
+      integer*4 ip0,itfgeto
+      ip0=ipoint
       itfpeeko=itfgeto(kx)
-      next=icsmrk()
-      call cssetp(ip0)
+      next=ipoint
+      ipoint=ip0
       return
       end
 
       character*(*) function tfgetstrs(k,nc)
       use tfstk
       implicit none
-      type (sad_descriptor) k
+      type (sad_descriptor) ,intent(in):: k
       type (sad_symbol), pointer :: sym
       type (sad_namtbl), pointer :: nam
       type (sad_string), pointer :: str
-      integer*4 nc
+      integer*4 ,intent(inout):: nc
       if(ktfsymbolq(k,sym))then
         call sym_namtbl(sym,nam)
         str=>nam%str

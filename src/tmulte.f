@@ -1,86 +1,59 @@
-      subroutine tmulte(trans,cod,beam,srot,l,al,ak,bz0,
+      subroutine tmulte(trans,cod,beam,srot,l,al,ak,bz,
      $     phia,psi1,psi2,apsi1,apsi2,
      1     dx,dy,dz,chi1,chi2,theta,dtheta,
      $     eps0,enarad,fringe,
      $     f1in,f2in,f1out,f2out,mfring,
      $     fb1,fb2,bfrm,vc,harm,phi,freq,wakew1,
      $     rtaper,autophi)
-      use ffs_flag
+      use ffs_flag, only:calpol,radcod,rfsw,trpt
       use ffs_pointer , only:gammab
-      use tmacro
+      use tmacro, only:amass,c,charge,ddvcacc,dvcacc,e,h0,hvc0,
+     $     irad,omega0,p0,pbunch,pgev,trf0,vc0,vcacc
       use multa, only:nmult
-      use temw
-      use tspin
+      use temw,only:bsir0,tsetr0,tmulbs,code
+      use sol, only:tsolrote
+      use kradlib, only:tradke
       use mathfun
+      use multa, only:fact,an
+      use macmath
       implicit none
-      integer*4 ndivmax
-      real*8 ampmax,oneev,pmax
-      parameter (ampmax=0.05d0,ndivmax=300,pmax=0.9999d0)
-      parameter (oneev=1.d0+3.83d-12)
-      integer*4 mfring,ld,l,n,ndiv,m,kord,i,nmmax,nmmin,
-     $     itgetqraddiv
-      real*8 f1in,f2in,f1out,f2out,
-     $     al,vc,harm,phi,freq,bz,dx,dy,dz,chi1,chi2,theta,
-     $     eps0,bxs,bys,bzs,al1,p1,h1,v1,t,phii,a,dh,dtheta,
+      integer*4 ,parameter ::ndivmax=300
+      real*8 ,parameter::ampmax=0.05d0,pmax=0.9999d0,oneev=1.d0+3.83d-12
+      integer*4 ,intent(in):: mfring,l
+      real*8 ,intent(inout):: trans(6,12),cod(6),beam(42),srot(3,9)
+      real*8 ,intent(in):: f1in,f2in,f1out,f2out,
+     $     al,vc,harm,phi,freq,bz,dx,dy,dz,chi1,chi2,theta,dtheta,
+     $     fb1,fb2,rtaper,wakew1,eps0,phia,psi1,psi2,
+     $     apsi1,apsi2
+      complex*16 ,intent(in):: ak(0:nmult)
+      logical*4 ,intent(in):: enarad,fringe,autophi,bfrm
+      real*8 bxs,bys,bzs,al1,p1,h1,v1,t,phii,a,dh,
      $     h2,p2,pf,v2,eps,v,w,aln,vn,phis,phic,ak1,vcn,veff,
-     $     dhg,rg2,dgb,wakew1,w1n,theta1,phia,psi1,psi2,
-     $     apsi1,apsi2,bz0,v10a,v11a,v02a,v20a,offset1,va,sp,cp,
+     $     dhg,rg2,dgb,w1n,theta2,v10a,v11a,v02a,v20a,offset1,va,sp,cp,
      $     av,dpxa,dpya,dpx,dpy,dav,davdz,davdp,ddhdx,ddhdy,ddhdp,
-     $     ddhdz,wi,dv,s0,fb1,fb2,rtaper
-      real*8 trans(6,12),trans1(6,6),cod(6),beam(42),srot(3,9)
+     $     ddhdz,wi,dv,s0
+      integer*4 n,ndiv,m,kord,nmmax,nmmin,itgetqraddiv
+      real*8 trans1(6,6)
       complex*16 cx,cx0,cx2,cr,cr1
-      real*8 fact(0:nmult),an(0:nmult)
-      complex*16 ak(0:nmult),akn(0:nmult),ak0n
-      logical*4 enarad,fringe,acc,bfrm,autophi,krad
-      data fact / 1.d0,  1.d0,   2.d0,   6.d0,   24.d0,   120.d0,
-     1     720.d0,     5040.d0,     40320.d0,362880.d0,3628800.d0,
-     $     39916800.d0,479001600.d0,6227020800.d0,87178291200.d0,
-     $     1307674368000.d0,20922789888000.d0,355687428096000.d0,
-     $     6402373705728000.d0,121645100408832000.d0,
-     $     2432902008176640000.d0,51090942171709440000.d0/
-      data an/1.d0,1.d0,
-     $0.5d0,
-     $0.33333333333333333333d0,
-     $0.25d0,
-     $0.2d0,
-     $0.166666666666666666667d0,
-     $0.142857142857142857143d0,
-     $0.125d0,
-     $0.111111111111111111111d0,
-     $0.1d0,
-     $0.090909090909090909091d0,
-     $0.083333333333333333333d0,
-     $0.076923076923076923077d0,
-     $0.071428571428571428571d0,
-     $0.066666666666666666667d0,
-     $0.0625d0,
-     $0.058823529411764705882d0,
-     $0.055555555555555555556d0,
-     $0.052631578947368421053d0,
-     $0.05d0,
-     $0.047619047619047619048d0/
+      complex*16 akn(0:nmult),ak0n,akn0
+      logical*4 acc,krad
       if(phia .ne. 0.d0)then
         call tmultae(trans,cod,beam,srot,al,ak,
-     $       phia,psi1,psi2,apsi1,apsi2,bz0,
+     $       phia,psi1,psi2,apsi1,apsi2,bz,
      1       dx,dy,theta,dtheta,
      $       eps0,enarad,fringe,fb1,fb2,mfring,l)
         return
       endif
-      if(imag(ak(1)) .eq. 0.d0)then
-        theta1=0.d0
-      else
-        theta1=atan2(imag(ak(1)),dble(ak(1)))*.5d0
-      endif
-      call tsolrot(trans,cod,beam,al,bz0,dx,dy,dz,
-     $     chi1,chi2,theta+dtheta+theta1,bxs,bys,bzs,.true.)
+      code=cod
+      theta2=theta+dtheta+akang(ak(1),al,cr1)
+      call tsolrote(trans,cod,beam,srot,al,bz,dx,dy,dz,
+     $     chi1,chi2,theta2,bxs,bys,bzs,.true.)
+      akn0=(ak(0)*cr1+dcmplx(bys,bxs)*al)*rtaper
       krad=enarad .and. al .ne. 0.d0
       if(krad)then
-        call tsetr0(trans(:,1:6),cod(1:6),bzs*.5d0,0.d0)
+        call tsetr0(trans(:,1:6),cod,bzs*.5d0,0.d0)
       endif
-      cr1=dcmplx(cos(theta1),-sin(theta1))
-      akn(0)=(ak(0)*cr1+dcmplx(bys,bxs)*al)*rtaper
-      bz=bz0
-      do n=nmult,0,-1
+      do n=nmult,1,-1
         if(ak(n) .ne. 0.d0)then
           nmmax=n
           go to 1
@@ -90,7 +63,7 @@
         nmmax=0
       else
         call tdrife(trans,cod,beam,srot,
-     $       al,bzs,dble(akn(0)),imag(akn(0)),al,
+     $       al,bzs,dble(akn0),imag(akn0),al,
      $       .true.,krad,irad)
         dhg=0.d0
         go to 1000
@@ -127,9 +100,9 @@
       w=0.d0
       wi=0.d0
       v02a=0.d0
-      if(vc .ne. 0.d0)then
+      if(acc)then
         if(harm .eq. 0.d0)then
-          w=pi2*freq/c
+          w=m_2pi*freq/c
         else
           w=omega0*harm/c
         endif
@@ -177,7 +150,7 @@
         dhg=0.d0
       endif
       cr=cr1*rtaper
-      akn(0)=akn(0)/ndiv
+      akn(0)=akn0/ndiv
       do n=1,max(nmmax,1)
         cr=cr*cr1
         akn(n)=(ak(n)*cr)/ndiv
@@ -193,7 +166,7 @@
      $           irad,irad .gt. 6 .or. calpol,autophi)
           endif
           if(ak1 .ne. 0.d0)then
-            call tqfrie(trans,cod,beam,ak1,al1,ld,bzs)
+            call tqfrie(trans,cod,beam,ak1,al1,bzs)
           endif
         endif
         if(bfrm .and. ak0n .ne. (0.d0,0.d0))then
@@ -225,9 +198,7 @@
         if(nmmin .eq. 2)then
           call tsolque(trans,cod,beam,srot,al1,ak1,
      $         bzs,dble(ak0n),imag(ak0n),
-     $         eps0,
-     $         krad,
-     $         radcod,calpol,irad)
+     $         eps0,krad,irad)
           call tgetdvh(dgb,dv)
           cod(5)=cod(5)+dv*al1
         endif
@@ -256,17 +227,16 @@
         cod(2)=cod(2)-dble(cx)+w1n*cod(1)
         cod(4)=cod(4)+imag(cx)+w1n*cod(3)
         if(m .eq. 1)then
-          bsi=bsi+imag(cx)/al1
+          bsir0=bsir0+imag(cx)/al1
         else
-          bsi=0.d0
+          bsir0=0.d0
         endif
         if(m .eq. ndiv)then
-          bsi=bsi-imag(cx)/al1
+          bsir0=bsir0-imag(cx)/al1
         endif
         if(acc)then
           p1=p0*(1.d0+cod(6))
           h1=p2h(p1)
-c          h1=sqrt(1.d0+p1**2)
           h1=p1+1.d0/(h1+p1)
           v1=p1/h1
           t=-cod(5)/v1
@@ -285,7 +255,6 @@ c          h1=sqrt(1.d0+p1**2)
           va=vn+(v10a+v20a*cod(1)+v11a*cod(3))*cod(1)
      $           +v02a*cod(3)**2
           dh=max(oneev-h1,-va*(sp+offset1))
-c          write(*,*)'tmulte-dh ',dh*amass,phii,phic,phis
           veff=vcn
           vc0=vc0+veff
           if(omega0 .ne. 0.d0)then
@@ -293,7 +262,6 @@ c          write(*,*)'tmulte-dh ',dh*amass,phii,phic,phis
           endif
           h2=h1+dh
           p2=h2p(h2)
-c          p2=h2*sqrt(1.d0-1.d0/h2**2)
           pf    =(h2+h1)/(p2+p1)*dh
           p2=p1+pf
           v2=p2/h2
@@ -335,49 +303,47 @@ c          p2=h2*sqrt(1.d0-1.d0/h2**2)
           cod(4)=cod(4)+dpy
           cod(6)=cod(6)+pf/p0
           cod(5)=-t*v2
-          call tmultr(trans,trans1,irad)
+          trans(:,1:irad)=matmul(trans1,trans(:,1:irad))
           dgb=dgb+dhg
-        elseif(irad .eq. 6)then
-            trans(2,1)=trans(2,1)+trans1(2,1)*trans(1,1)
-     $           +trans1(2,3)*trans(3,1)
-            trans(4,1)=trans(4,1)+trans1(4,1)*trans(1,1)
-     $           +trans1(4,3)*trans(3,1)
-            trans(2,2)=trans(2,2)+trans1(2,1)*trans(1,2)
-     $           +trans1(2,3)*trans(3,2)
-            trans(4,2)=trans(4,2)+trans1(4,1)*trans(1,2)
-     $           +trans1(4,3)*trans(3,2)
-            trans(2,3)=trans(2,3)+trans1(2,1)*trans(1,3)
-     $           +trans1(2,3)*trans(3,3)
-            trans(4,3)=trans(4,3)+trans1(4,1)*trans(1,3)
-     $           +trans1(4,3)*trans(3,3)
-            trans(2,4)=trans(2,4)+trans1(2,1)*trans(1,4)
-     $           +trans1(2,3)*trans(3,4)
-            trans(4,4)=trans(4,4)+trans1(4,1)*trans(1,4)
-     $           +trans1(4,3)*trans(3,4)
-            trans(2,5)=trans(2,5)+trans1(2,1)*trans(1,5)
-     $           +trans1(2,3)*trans(3,5)
-            trans(4,5)=trans(4,5)+trans1(4,1)*trans(1,5)
-     $           +trans1(4,3)*trans(3,5)
-            trans(2,6)=trans(2,6)+trans1(2,1)*trans(1,6)
-     $           +trans1(2,3)*trans(3,6)
-            trans(4,6)=trans(4,6)+trans1(4,1)*trans(1,6)
-     $           +trans1(4,3)*trans(3,6)
+c$$$        elseif(irad .eq. 6)then
+c$$$          trans(2,1)=trans(2,1)+trans1(2,1)*trans(1,1)
+c$$$     $         +trans1(2,3)*trans(3,1)
+c$$$          trans(4,1)=trans(4,1)+trans1(4,1)*trans(1,1)
+c$$$     $         +trans1(4,3)*trans(3,1)
+c$$$          trans(2,2)=trans(2,2)+trans1(2,1)*trans(1,2)
+c$$$     $         +trans1(2,3)*trans(3,2)
+c$$$          trans(4,2)=trans(4,2)+trans1(4,1)*trans(1,2)
+c$$$     $         +trans1(4,3)*trans(3,2)
+c$$$          trans(2,3)=trans(2,3)+trans1(2,1)*trans(1,3)
+c$$$     $         +trans1(2,3)*trans(3,3)
+c$$$          trans(4,3)=trans(4,3)+trans1(4,1)*trans(1,3)
+c$$$     $         +trans1(4,3)*trans(3,3)
+c$$$          trans(2,4)=trans(2,4)+trans1(2,1)*trans(1,4)
+c$$$     $         +trans1(2,3)*trans(3,4)
+c$$$          trans(4,4)=trans(4,4)+trans1(4,1)*trans(1,4)
+c$$$     $         +trans1(4,3)*trans(3,4)
+c$$$          trans(2,5)=trans(2,5)+trans1(2,1)*trans(1,5)
+c$$$     $         +trans1(2,3)*trans(3,5)
+c$$$          trans(4,5)=trans(4,5)+trans1(4,1)*trans(1,5)
+c$$$     $         +trans1(4,3)*trans(3,5)
+c$$$          trans(2,6)=trans(2,6)+trans1(2,1)*trans(1,6)
+c$$$     $         +trans1(2,3)*trans(3,6)
+c$$$          trans(4,6)=trans(4,6)+trans1(4,1)*trans(1,6)
+c$$$     $         +trans1(4,3)*trans(3,6)
         else
-          do i=1,irad
-            trans(2,i)=trans(2,i)+trans1(2,1)*trans(1,i)
-     $           +trans1(2,3)*trans(3,i)
-            trans(4,i)=trans(4,i)+trans1(4,1)*trans(1,i)
-     $           +trans1(4,3)*trans(3,i)
-          enddo
+          trans(2,1:irad)=trans(2,1:irad)+trans1(2,1)*trans(1,1:irad)
+     $         +trans1(2,3)*trans(3,1:irad)
+          trans(4,1:irad)=trans(4,1:irad)+trans1(4,1)*trans(1,1:irad)
+     $         +trans1(4,3)*trans(3,1:irad)
         endif
         if(irad .gt. 6)then
-          call tmulbs(beam ,trans1,.true.,.true.)
+          call tmulbs(beam ,trans1,.true.)
         endif
       enddo
       if(nmmin .eq. 2)then
         call tsolque(trans,cod,beam,srot,al1*.5d0,ak1*.5d0,
      $       bzs,dble(ak0n)*.5d0,imag(ak0n)*.5d0,
-     $       eps0,krad,radcod,calpol,irad)
+     $       eps0,krad,irad)
         call tgetdvh(dgb,dv)
         cod(5)=cod(5)+dv*al1*.5d0
       endif
@@ -394,7 +360,7 @@ c          p2=h2*sqrt(1.d0-1.d0/h2**2)
         endif
         if(fringe .and. mfring .ne. 1)then
           if(ak1 .ne. 0.d0)then
-            call tqfrie(trans,cod,beam,-ak1,al1,ld,bzs)
+            call tqfrie(trans,cod,beam,-ak1,al1,bzs)
           endif
           if(acc)then
             call tcavfrie(trans,cod,beam,al,-v,w,phic,phis-phic,s0,p0,
@@ -406,18 +372,21 @@ c          p2=h2*sqrt(1.d0-1.d0/h2**2)
         call tradke(trans,cod,beam,srot,f1out,0.d0,bzs*.5d0)
       endif
  1000 continue
-      call tsolrot(trans,cod,beam,al,bz,dx,dy,dz,
-     $     chi1,chi2,theta+dtheta+theta1,bxs,bys,bzs,.false.)
+c      if(ktfenanq(cod(5)) .or. ktfenanq(trans(5,6)))then
+c        write(*,'(a,2i5)')'tmulte-1000 ',l,ndiv
+c        write(*,'(1p6g15.7)')(trans(i,1:6),i=1,6),cod
+c      endif
+      call tsolrote(trans,cod,beam,srot,al,bz,dx,dy,dz,
+     $     chi1,chi2,theta2,bxs,bys,bzs,.false.)
       if(dhg .ne. 0.d0)then
         rg2=p0/gammab(l+1)
-c        rg=sqrt(rg2)
         call tinitr(trans1)
         trans1(2,2)=rg2
         trans1(4,4)=rg2
         trans1(6,6)=rg2
-        call tmultr(trans,trans1,irad)
+        trans(:,1:irad)=matmul(trans1,trans(:,1:irad))
         if(irad .gt. 6)then
-          call tmulbs(beam,trans1,.true.,.true.)
+          call tmulbs(beam,trans1,.true.)
         endif
         cod(2)=cod(2)*rg2
         cod(4)=cod(4)*rg2
@@ -426,5 +395,9 @@ c        rg=sqrt(rg2)
         call tphyzp
         call tesetdv(cod(6))
       endif
+c      if(ktfenanq(cod(5)) .or. ktfenanq(trans(5,6)))then
+c        write(*,'(a,i5)')'tmulte-end ',l
+c        write(*,'(1p6g15.7)')(trans(i,1:6),i=1,6),cod
+c      endif
       return
       end

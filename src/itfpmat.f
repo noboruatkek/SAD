@@ -50,6 +50,7 @@ c      endif
 
       integer*4 function itflistmat(k,listp)
       use tfstk
+      use efun
       implicit none
       type (sad_descriptor) kph,k,ki,kc,kh,kf,k1,kp1
       type (sad_dlist) listp
@@ -67,7 +68,7 @@ c      endif
         endif
         isp0=isp
         kh=lista%head
-        itflistmat=itfpmat(kh,listp%head%k)
+        itflistmat=itfpmat(kh,listp%head)
         if(itflistmat .lt. 0)then
           return
         endif
@@ -220,7 +221,7 @@ c      endif
                 dtastk(isp)=k
                 ierrorth0=ierrorth
                 ierrorth=10
-                call tfefunref(isp3+1,kf,.true.,irtc)
+                kf=tfefunref(isp3+1,.true.,irtc)
                 ierrorth=ierrorth0
                 isp=isp3
                 if(irtc .ne. 0)then
@@ -377,7 +378,7 @@ c        write(*,*)'patmat-result ',itfpatmat,pat%mat
         itfseqmatseq=0
       else
         itfseqmatseq=itfseqmatstk(isp1,isp2,kl%dbody(1),
-     $       kl%nl,mp1,ktfreallistq(kl),int8(0))
+     $       kl%nl,mp1,ktfreallistq(kl),i00)
       endif
       return
       end
@@ -395,7 +396,7 @@ c        write(*,*)'patmat-result ',itfpatmat,pat%mat
       elseif(mp .eq. 1 .and. mp1 .eq. 1)then
         itfseqmat=itfseqmatstk1(isp1,isp2,kp(1))
       else
-        itfseqmat=itfseqmatstk(isp1,isp2,kp,mp,mp1,.false.,int8(0))
+        itfseqmat=itfseqmatstk(isp1,isp2,kp,mp,mp1,.false.,i00)
       endif
       return
       end
@@ -458,10 +459,10 @@ c        write(*,*)'patmat-result ',itfpatmat,pat%mat
         kp=kp0(mp1)
       endif
       mstk0=mstk
+      ispf=isp20
       if(kpp .eq. 0)then
         isp1a=isp10
         isp2a=isp20
-        ispf=isp20
         if(map .eq. mp1+1)then
           do while(ispf .ge. isp1a-1)
             iop0=iordless
@@ -488,7 +489,7 @@ c        write(*,*)'patmat-result ',itfpatmat,pat%mat
  1010       i=itfseqm(isp1a,isp2a,kp,ispf,isps,ispt)
             if(i .ge. 0)then
               ix=min(i,itfseqmatstk(isps,isp2a,
-     $             kp0,map,mp1+1,realp,int8(0)))
+     $             kp0,map,mp1+1,realp,i00))
               if(ix .ge. 0)then
                 return
               endif
@@ -582,7 +583,7 @@ c        write(*,*)'patmat-result ',itfpatmat,pat%mat
                 else
                   ix=min(i,
      $                 itfseqmatstk(isps,isp2a,kp0,map,mp1+1,
-     $                 realp,int8(0)))
+     $                 realp,i00))
                 endif
               endif
               if(ix .ge. 0)then
@@ -636,6 +637,7 @@ c     write(*,*)'at ',ispp,' with ',mop,np
       use tfstk
       use tfcode
       use tfpmat
+      use efun
       use iso_c_binding
       implicit none
       type (sad_descriptor) kp1,kp0,kp,kd,k2,kf
@@ -773,7 +775,7 @@ c          write(*,*)'==> ',ix
             isp=isp+isps-isp1
             ierrorth0=ierrorth
             ierrorth=10
-            call tfefunref(isp0+1,kf,.true.,irtc)
+            kf=tfefunref(isp0+1,.true.,irtc)
             ierrorth=ierrorth0
             isp=isp0
             if(irtc .ne. 0)then
@@ -810,7 +812,7 @@ c          write(*,*)'==> ',ix
      $           iand(lsimplepat,listp%attr) .ne. 0)then
               ix=-1
             else
-              ix=itflistmat(ktastk(isp1),listp)
+              ix=itflistmat(dtastk(isp1),listp)
             endif
           endif
         elseif(listp%head%k .eq. ktfoper+mtfnull .and.

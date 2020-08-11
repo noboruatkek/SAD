@@ -78,8 +78,13 @@ ON ECHO;OFF CTIME;
   GO;               ! start matching
 !                     define dr as the drawing command (needs X-Window)
 !  dr:=FFS["OUT 'a' DRAW BX BY & EX EY {BQ}*; TERM OUT; TDR 'a';"];
+<<<<<<< HEAD
  dr:=FFS["DRAW BX BY & EX EY {BQ}*;"];
 !  dr;               ! draw optics of unit cell
+=======
+  dr:=FFS["DRAW BX BY & EX EY {BQ}*;"];
+  dr;               ! draw optics of unit cell
+>>>>>>> 8ea475ad2b629fdb82e192a93e977adf1e482616
   SAVE;             ! save the matching result (values of QF, QD) to
                     ! keep them after swtch the beam line.
   Print[TimeUsed[]];! CPU Time used so far.

@@ -2,7 +2,6 @@
       integer*4, parameter:: nshmax=1024
       integer*8, save:: kashare(nshmax)=0,lshare(nshmax)=0
       integer*4, save :: ishared(nshmax)=0,kstshare(0:nshmax)=0
-
       
       contains
       integer*8 function ktfallocshared(n)
@@ -237,9 +236,9 @@ c          call tfdebugprint(kh,'storeshared-head',1)
           do j=isp0,isp
             if(ktastk(j) .eq. kh)then
               if(ktfstringq(kh))then
-                klist(kap+1)=ktfstring++ktastk2(j)
+                klist(kap+1)=ktfstring+ktastk2(j)
               else
-                klist(kap+1)=ktflist++ktastk2(j)+1
+                klist(kap+1)=ktflist+ktastk2(j)+1
               endif
 c              klist(kap+1)=iand(ktfmask,kh)+ktastk2(j)
               exit

@@ -66,6 +66,7 @@
       use tfstk
       use tfcode
       use iso_c_binding
+      use efun
       implicit none
       type (sad_descriptor) kx,kf,kh,kl
       type (sad_funtbl), pointer :: fun
@@ -106,7 +107,7 @@
           endif
         else
           call loc_sym(kaf,sym)
-          call tfsydef(sym,sym)
+          sym=>tfsydef(sym)
           kf=sad_descr(sym)
         endif
       case (ktflist)
@@ -204,7 +205,7 @@ c          msgn TagS (*   *)   Hold z
         endif
         if(evalh .or. .not. ref)then
           if(tfonstackq(ks) .or. kls%ref .gt. 0)then
-            call tfduplist(kls,kls1)
+            kls1=>tfduplist(kls)
             kls=>kls1
           endif
           kls%head%k=ktfoper+kaf
@@ -229,7 +230,7 @@ c          call tfstk2l(lista,lista)
       case(mtfset)
         rep=tfgetseqstk(ks,ns)
         if(isp .gt. isp1)then
-          call tfeevalref(ktastk(isp),ktastk(isp),irtc)
+          call tfeevalref(dtastk(isp),dtastk(isp),irtc)
           if(irtc .ne. 0)then
             go to 8000
           endif
@@ -401,7 +402,7 @@ c        call tfdebugprint(ktastk(isp1+1),' ',3)
 c        call tfdebugprint(ktastk(isp),' ',3)
 c      endif
       if(ref)then
-        call tfefunref(isp1,kx,.true.,irtc)
+        kx=tfefunref(isp1,.true.,irtc)
 c          call tfdebugprint(kf,'tfseval-efunref-out',3)
 c          call tfdebugprint(ktastk(isp1+1),' ',3)
 c          call tfdebugprint(ktastk(isp),' ',3)
@@ -486,7 +487,7 @@ c      call tfdebugprint(kx,'tfseval-connect',3)
         endif
         i=ka
       enddo
-      call tfreel(int8(0),lastfree)
+      call tfreel(i00,lastfree)
       klist(j)=j
       levele=max(0,levele-1)
       itfdownlevel=levele
@@ -604,7 +605,7 @@ c      call tfdebugprint(kx,'tfseval-connect',3)
           dtastk(isp)=sad_descr(list)
           irtc=0
         else
-          call tfleval(list,ktastk(isp),ref,irtc)     
+          call tfleval(list,dtastk(isp),ref,irtc)     
           if(irtc .ne. 0)then
             return
           endif
@@ -679,7 +680,7 @@ c                endif
               endif
             elseif(isp .gt. isp0)then
               isp=isp+1
-              call tfeevalref(ki,ktastk(isp),irtc)
+              call tfeevalref(ki,dtastk(isp),irtc)
               if(irtc .ne. 0)then
                 return
               endif
@@ -698,7 +699,7 @@ c                endif
               endif
             elseif(isp .eq. isp0)then
               isp=isp+1
-              call tfeevalref(ki,ktastk(isp),irtc)
+              call tfeevalref(ki,dtastk(isp),irtc)
               if(irtc .ne. 0)then
                 return
               endif
@@ -999,7 +1000,7 @@ c                endif
           return
         endif
       elseif(ktfsymbolq(k,sym) .and. sym%override .eq. 0)then
-        call tfsydef(sym,sym)
+        sym=>tfsydef(sym)
         kx=sad_descr(sym)
         irtc=0
         return
@@ -1018,7 +1019,7 @@ c                endif
       type (sad_namtbl), pointer :: nam
       integer*8 kaa,kopc
       integer*4 ind,irtc,nc,isp1,isps,
-     $     itfmessage,ns,ipf0,naf0,ls,isp2
+     $     itfmessage,ns,ipf0,naf0,ls,isp2,itfmessagestr
       real*8 ffval,vx
       character*256 name
       character*12 inds
@@ -1066,16 +1067,16 @@ c                endif
       if(kopc .eq. mtfslot)then
         if(ipurefp .eq. 0 .or. ind .le. 0 .or. ind .gt. napuref)then
           call strfromil(ind,inds,ls)
-          irtc=itfmessage(999,'General::slot',
-     $         '"#'//inds(:ls)//'"')
+          irtc=itfmessagestr(999,'General::slot',
+     $         '#'//inds(:ls))
           return
         endif
         kx=dtastk(isps)
       else
         if(ipurefp .eq. 0 .or. ind .le. 0)then
           call strfromil(ind,inds,ls)
-          irtc=itfmessage(999,'General::slot',
-     $         '"##'//inds(:ls)//'"')
+          irtc=itfmessagestr(999,'General::slot',
+     $         '##'//inds(:ls))
           return
         endif
         isp1=isp

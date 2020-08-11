@@ -9,80 +9,59 @@
       integer*4 i,l,j,ikx,lele,ib,ibz,ibznext,ibzb,k,ibg,ibb
       integer*8 idv
       real*8 v
-c      do i=1,nele
-        klp(1:nele)=mult(1:nele)
-        ival(1:nele)=0
-c      enddo
-      do 10 l=1,nlat-1
+      evarini=.true.
+      nelvx(1:nele)%klp=mult(1:nele)
+      nelvx(1:nele)%ival=0
+      do l=1,nlat-1
         ikx=iele1(l)
         couple(l)=1.d0
         errk(1,l)=1.d0
         errk(2,l)=0.d0
         if(ikx .gt. 0)then
-          lele=idtypec(klp(ikx))
-          vlim(ikx,1)=-1.d10
-          vlim(ikx,2)=1.d10
-          go to (110,120,10,140,10,160,10,160,10,160,10,160),lele
-          go to 210
-110       ival(ikx)=1
-          vlim(ikx,1)=.1d0
-          go to 200
-120       ival(ikx)=2
-          go to 200
-140       ival(ikx)=2
-          go to 200
-160       ival(ikx)=2
-          go to 200
-210       if(lele .eq. icSOL)then
-            ival(ikx)=2
-          elseif(lele .eq. icMULT)then
-            ival(ikx)=ky_K1_MULT
-          elseif(lele .eq. icCAVI)then
-            ival(ikx)=2
-          elseif(lele .eq. 32)then
-            ival(ikx)=2
-          elseif(lele .eq. icMARK)then
-            ival(ikx)=0
+          lele=idtypec(nelvx(ikx)%klp)
+          nelvx(ikx)%vlim=(/-1.d10,1.d10/)
+c          go to (110,120,10,140,10,160,10,160,10,160,10,160),lele
+c          go to 210
+          select case (lele)
+          case (icDRFT)
+            nelvx(ikx)%ival=1
+            nelvx(ikx)%vlim(1)=.1d0
+          case (icBEND,icQUAD,icSEXT,icOCTU,icDECA,icDODECA,
+     $           icSOL,icCAVI,icTCAV)
+            nelvx(ikx)%ival=2
+          case (icMULT)
+            nelvx(ikx)%ival=ky_K1_MULT
+          case (icMARK)
+            nelvx(ikx)%ival=0
             idv=idvalc(l)
             twiss(l,0,1:ntwissfun)=rlist(idv+1:idv+ntwissfun)
-          elseif(lele .eq. icMONI)then
-            ival(ikx)=0
-          elseif(lele .eq. 43)then
-            ival(ikx)=0
-          elseif(lele .eq. 35)then
-            ival(ikx)=0
-          elseif(lele .eq. 34)then
-            ival(ikx)=0
-          elseif(lele .eq. 36)then
-            ival(ikx)=0
-          elseif(lele .eq. 37)then
-            ival(ikx)=0
-          else
-            ival(ikx)=0
-            go to 10
-          endif
- 200      if(ival(ikx) .gt. 0)then
-            call loc_comp(idvalc(klp(ikx)),cmps)
-            v=cmps%value(ival(ikx))
+            cycle
+          case default
+            nelvx(ikx)%ival=0
+            cycle
+          end select
+          if(nelvx(ikx)%ival .gt. 0)then
+            call loc_comp(idvalc(nelvx(ikx)%klp),cmps)
+            v=cmps%value(nelvx(ikx)%ival)
 c            v=rlist(idvalc(klp(ikx))+ival(ikx))
             if(v .ne. 0.d0)then
-              errk(1,l)=tfvalvar(l,ival(ikx))/v
+              errk(1,l)=tfvalvar(l,nelvx(ikx)%ival)/v
 c              errk(1,l)=rlist(latt(l)+ival(ikx))/v
             endif
           endif
         endif
-10    continue
+      enddo
       mult(nlat)=0
-      iele(nlat)=nlat
+      icomp(nlat)=nlat
       iele1(nlat)=0
       call tfinimult(1)
       ib=1
       ibz=0
       ibzb=0
       ibznext=0
-      do i=1,nlat
-        ibzl(3,i)=0
-      enddo
+c      do i=1,nlat
+        ibzl(3,1:nlat)=0
+c      enddo
       do i=1,nlat-1
         if(idtypec(i) .eq. icSOL)then
           if(ibz .ne. 0 .and.
@@ -192,15 +171,17 @@ c     $     rlist(ifgamm+i-1),rlist(ifgamm),tfbzs
       if(ibz .ne. 0)then
         if(ibz .lt. i)then
           tfinsol=.true.
-        elseif(ibz .gt. i)then
+        else
           ld=idelc(i)
-          if(idtype(ld) .ne. icSOL)then
-            tfinsol=.true.
+          if(ibz .gt. i)then
+            if(idtype(ld) .ne. icSOL)then
+              tfinsol=.true.
+            elseif(rlist(idval(ld)+ky_BND_SOL) .eq. 0.d0)then
+              tfinsol=.true.
+            endif            
           elseif(rlist(idval(ld)+ky_BND_SOL) .eq. 0.d0)then
             tfinsol=.true.
-          endif            
-        else
-          if(direlc(i) .lt. 0.d0)then
+          elseif(direlc(i) .lt. 0.d0)then
             tfinsol=.true.
           endif
         endif
@@ -213,7 +194,7 @@ c     $     rlist(ifgamm+i-1),rlist(ifgamm),tfbzs
       use ffs
       use ffs_pointer
       use tffitcode
-      use tfcsi,only:cssetp
+      use tfcsi,only:ipoint
       implicit none
       integer*4 next,ielm,lfno,i0
       character*(MAXPNAME+16) name
@@ -221,8 +202,9 @@ c     $     rlist(ifgamm+i-1),rlist(ifgamm),tfbzs
       call peekwdp(name,next)
       i0=ielm(name,exist)
       if(exist)then
-        call cssetp(next)
+        ipoint=next
         call tfinimult(i0)
+        evarini=.true.
       else
         call termes(lfno,
      $       'Missing origin component for RENUM_BER',' ')
@@ -237,21 +219,21 @@ c     $     rlist(ifgamm+i-1),rlist(ifgamm),tfbzs
       use tffitcode
       implicit none
       integer*4 i0,im(nele),i,ii,iie,k,ltyp,idx
-      do i=1,nlat
-        mult(i)=0
-      enddo
-      do i=1,nele
-        klp(i)=0
-        im(i)=0
+c      do i=1,nlat
+        mult(1:nlat)=0
+c      enddo
+c      do i=1,nele
+        nelvx(1:nele)%klp=0
+        im=0
 c        ilist(i-1,im)=0
-      enddo
+c      enddo
       do i=1,nlat-1
         ii=mod(i+nlat+i0-3,nlat-1)+1
         iie=iele1(ii)
-        k=klp(iie)
+        k=nelvx(iie)%klp
         if(k .eq. 0)then
-          klp(iie)=ii
-          iele(ii)=ii
+          nelvx(iie)%klp=ii
+          icomp(ii)=ii
         else
           if(mult(k) .eq. 0)then
             mult(k)=1
@@ -270,7 +252,7 @@ c            ilist(iie-1,im)=mult(k)
           mult(ii)=im(iie)
 c          ilist(iie-1,im)=ilist(iie-1,im)+1
 c          mult(ii)=ilist(iie-1,im)          
-          iele(ii)=k
+          icomp(ii)=k
         endif
       enddo
       return

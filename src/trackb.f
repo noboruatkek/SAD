@@ -28,12 +28,12 @@ ckikuchi ... 1 line added
       xxa=sv(3)
       xya=sv(5)
       yya=sv(4)
-      if(print)then
-        call phdrw(ix,np,word,title,case,exist,lfno)
-      endif
+c      if(print)then
+c        call phdrw(ix,np,word,title,case,exist,lfno)
+c      endif
       if(ret)then
         kx=kxadaloc(-1,3,klx)
-        klx%rbody(1)=dble(np)
+        klx%dbody(1)=dfromr(dble(np))
         klx%dbody(2)=kxavaloc(0,6,klx1)
         klx1%rbody(1:6)=result(:,7)
         klx%dbody(3)=kxadaloc(0,6,klx2)

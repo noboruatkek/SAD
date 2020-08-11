@@ -5,7 +5,10 @@
       use tffitcode
       use tfshare
       use ffs_wake
+      use tparastat
+      use photontable,only:tphotoninit,tphotonlist
       use tfcsi
+      use iso_c_binding
       implicit none
       type (sad_descriptor) kx,kx1,kx2,ks,kp
       type (sad_dlist), pointer :: klx,kl
@@ -15,10 +18,11 @@
      $     kpsx,kpsy,kpsz
       integer*4 isp1,irtc,narg,itfloc,outfl0,ld,ls,mc,npz,npa,np00,
      $     ipr(100),npr,np1,fork_worker,iprid, ne,nend,npara,
-     $     npp,ipn,m,itfmessage,nt,mt,kseed,j,mcf
+     $     npp,ipn,m,itfmessage,nt,mt,kseed,mcf
       integer*8 ikptblw,ikptblm
       real*8 trf00,p00,vcalpha0
-
+      real*8 , pointer::zx(:,:),zx0(:,:)
+      integer*4 , pointer::iptbl(:,:),jptbl(:,:)
       logical*4 dapert0,normal
       narg=isp-isp1
       if(narg .gt. 4)then
@@ -30,16 +34,14 @@
       mt=1
       if(narg .ge. 3)then
         if(ktastk(isp1+3) .eq. ktfoper+mtfnull)then
-        elseif(ktfrealq(ktastk(isp1+3)))then
-          nt=int(rtastk(isp1+3))
+        elseif(ktfrealq(ktastk(isp1+3),nt))then
           nend=nt
         else
           go to 9100
         endif
         if(narg .eq. 4)then
           if(ktastk(isp) .eq. ktfoper+mtfnull)then
-          elseif(ktfrealq(ktastk(isp)))then
-            nend=int(rtastk(isp))
+          elseif(ktfrealq(ktastk(isp),nend))then
             if(nend .lt. nt)then
               irtc=itfmessage(9,'General::wrongval',
      $             '"#4 >= #3"')
@@ -130,14 +132,22 @@
       if(irtc .ne. 0)then
         go to 8900
       endif
+      call c_f_pointer(c_loc(rlist(kz)),zx0,[npz,mc])
       if(photons)then
-        call tphotoninit()
+        npara=1
+        if(rad .and. rfluct)then
+          call tphotoninit()
+        else
+          irtc=itfmessage(9,'Track::photons','""')
+          return
+        endif
       endif
       if(radlight)then
         rad=.true.
         trpt=.true.
         call tlinit(npz,h0,rlist(ifgeo+12*(ls-1)))
       endif
+c      call omp_set_num_threads(1)
       if(npara .gt. 1)then
         kseed=0
 c        write(*,*)'tftrack ',nparallel,npz,npparamin,
@@ -149,7 +159,7 @@ c     $       ne,npnlatmin
         npara=min(npara,npz/npparamin+1,ne*npz/npnlatmin+1)
         if(npara .gt. 1)then
           irtc=1
-          ikptblm=ktfallocshared(npz*((nkptbl+1)/2))
+          ikptblm=ktfallocshared(npz*int((nkptbl+1)/2))
           npr=npara-1
           np1=npz/npara+1
           ipn=0
@@ -161,7 +171,8 @@ c     $       ne,npnlatmin
             if(iprid .eq. 0)then
               call tfaddseed(kseed,irtc)
               if(irtc .ne. 0)then
-                return
+                write(*,*)'addseed-error ',irtc
+                call exit_without_hooks(0)
               endif
               npr=-1
               npp=np1
@@ -180,7 +191,7 @@ c     $       ne,npnlatmin
         vcalpha=1.d0
       endif
       kdv=ktaloc(npz)
-      ikptblw=ktaloc(npp*((nkptbl+1)/2))
+      ikptblw=ktaloc(npp*int((nkptbl+1)/2))
       kzp=kz+ipn
       kzf=kzp+npz*(mcf-1)
       if(calpol)then
@@ -198,8 +209,11 @@ c      pgev=rgetgl1('MOMENTUM')
 c      call tclrparaall
       call tphyzp
       call tsetdvfs
-      call tfsetparticles(rlist(kzp),rlist(kdv),
-     $     ilist(1,ikptblw),npp,npa,npz,mc,nlat,nt,mcf)
+      call c_f_pointer(c_loc(rlist(kzp)),zx,[npz,mc])
+      call c_f_pointer(c_loc(ilist(1,ikptblw)),iptbl,[npp,nkptbl])
+      call c_f_pointer(c_loc(ilist(1,ikptblm)),jptbl,[npz,nkptbl])
+      call tfsetparticles(zx,rlist(kdv:kdv+npp-1),
+     $     iptbl,npp,npa,npz,mc,nlat,nt,mcf)
       if(npa .gt. 0)then
         outfl0=outfl
         outfl=0
@@ -208,11 +222,11 @@ c      call tclrparaall
         np00=np0
         np0=npp
         if(mt .gt. 1)then
-          call tturn0(npa,latt,ls,nlat,
-     $         rlist(kzp),      rlist(kzp+npz),  rlist(kzp+npz*2),
-     $         rlist(kzp+npz*3),rlist(kzp+npz*4),rlist(kzp+npz*5),
+          call tturn0(npa,ls,nlat,
+     $         zx(1:npa,1),zx(1:npa,2),zx(1:npa,3),zx(1:npa,4),
+     $         zx(1:npa,5),zx(1:npa,6),
      $         rlist(kdv),rlist(kpsx),rlist(kpsy),rlist(kpsz),
-     $         ilist(1,ikptblw),nt,normal)
+     $         iptbl,nt,normal)
           nt=nt+1
           mt=mt-1
           ls=1
@@ -228,55 +242,51 @@ c      call tclrparaall
             mt=0
             exit
           endif
-          call tturn0(npa,latt,1,nlat,
-     $         rlist(kzp),      rlist(kzp+npz),  rlist(kzp+npz*2),
-     $         rlist(kzp+npz*3),rlist(kzp+npz*4),rlist(kzp+npz*5),
+          call tturn0(npa,1,nlat,
+     $         zx(1:npa,1),zx(1:npa,2),zx(1:npa,3),zx(1:npa,4),
+     $         zx(1:npa,5),zx(1:npa,6),
      $         rlist(kdv),rlist(kpsx),rlist(kpsy),rlist(kpsz),
-     $         ilist(1,ikptblw),nt,normal)
+     $         iptbl,nt,normal)
           nt=nt+1
           mt=mt-1
         enddo
-c       write(*,*)'tftrack-1 ',mt,ls,ld
+        normal=.true.
         if(ld .le. ls)then
           normal=.false.
         elseif(mt .ge. 1 .and. npa .gt. 0)then
-          call tturn0(npa,latt,ls,ld,
-     $         rlist(kzp),      rlist(kzp+npz),  rlist(kzp+npz*2),
-     $         rlist(kzp+npz*3),rlist(kzp+npz*4),rlist(kzp+npz*5),
+          call tturn0(npa,ls,ld,
+     $         zx(1:npa,1),zx(1:npa,2),zx(1:npa,3),zx(1:npa,4),
+     $         zx(1:npa,5),zx(1:npa,6),
      $         rlist(kdv),rlist(kpsx),rlist(kpsy),rlist(kpsz),
-     $         ilist(1,ikptblw),nt,normal)
-        else
-          normal=.true.
+     $         iptbl,nt,normal)
+c          write(*,'(a,4i5,1p6g15.7)')'tftrack-5 ',npa,np0,npz,ipn,
+c     $         zx(npa,3)
         endif
-c        write(*,*)'tftrack-2'
         np0=np00
         outfl=outfl0
         dapert=dapert0
-c        rlist(kzf:kzf+npa-1)=1.d0
-c        rlist(kzf+npa:kzf+npp-1)=0.d0
       endif
       trf0=trf00
       vcalpha=vcalpha0
       irtc=0
       if(npr .ne. 0)then
 c       - Copy particle ID to array index map[kptbl(#,1)] with ipn offset
-        ilist(ipn+1:ipn+npp,ikptblm)=ilist(1:npp,ikptblw)+ipn
+        jptbl(ipn+1:ipn+npp,1)=iptbl(1:npp,1)+ipn
+c        ilist(ipn+1:ipn+npp,ikptblm)=ilist(1:npp,ikptblw)+ipn
 c       - Don't copy kptbl(#,2) becuase reversed map is not used at post process
 c       - Copy iptbl(*,3:nkptbl)
-        do j=3,nkptbl
-          ilist( ipn+(j-1)*npz+1:ipn+(j-1)*npz+npp,ikptblm)=
-     $         ilist((j-1)*npp+1:    (j-1)*npp+npp,ikptblw)
-        enddo
-        call tffswait(iprid,npr+1,ipr,int8(0),'tftrack',irtc)
-        kaxl=ktfresetparticles(rlist(kz),
-     $       ilist(1,ikptblm),npz,nlat,nend,mc)
+        jptbl(ipn+1:ipn+npp,3:nkptbl)=iptbl(1:npp,3:nkptbl)
+c        do j=3,nkptbl
+c          ilist( ipn+(j-1)*npz+1:ipn+(j-1)*npz+npp,ikptblm)=
+c     $         ilist((j-1)*npp+1:    (j-1)*npp+npp,ikptblw)
+c        enddo
+c        write(*,*)'tftrack-wait ',npz,npa,ipn,zx(npa,3)
+        call tffswait(iprid,npr+1,ipr,i00,'tftrack',irtc)
+c        write(*,*)'tftrack-afterwait ',npz,npa,ipn,zx(npz,3),zx(npa,3)
+        kaxl=ktfresetparticles(zx0,jptbl,npz,nlat,nend,mc)
         call tfreeshared(ikptblm)
-c        if(mapfree(iptbl(ikptblm+1)) .ne. 0)then
-c          write(*,*)'???tftrack-munmap error.'
-c        endif
       else
-        kaxl=ktfresetparticles(rlist(kz),
-     $       ilist(1,ikptblw),npz,nlat,nend,mc)
+        kaxl=ktfresetparticles(zx0,iptbl,npz,nlat,nend,mc)
       endif
       call tmunmapp(kz)
       if(photons)then
@@ -318,8 +328,8 @@ c        endif
  9100 irtc=itfmessage(9,'General::wrongval',
      $     '"[nbegin [, nend]] for #3 and #4"')
       return
- 9200 irtc=itfmessage(9,'FFS:nospin','""')
-      return
+c 9200 irtc=itfmessage(9,'FFS:nospin','""')
+c      return
       end
 
       subroutine tfsurvivedparticles(isp1,kx,irtc)
@@ -425,31 +435,28 @@ c        endif
       else
         nv=mcf
       endif
-      call tconvm(np,zx(1,2),zx(1,4),zx(1,6),0.d0,1)
+      call tconvm(np,zx(:,2),zx(:,4),zx(:,6),(/0.d0/),1)
       ka=ktadaloc(-1,nv)
       do j=1,nv
         kaj(j)=ktavaloc(0,np)
         klist(ka+j)=ktflist+kaj(j)
       enddo
-
       do i=1,np
         k=iptbl(i,1)
-        rlist(kaj(1)+i)=zx(k,1)
-        rlist(kaj(2)+i)=zx(k,2)
-        rlist(kaj(3)+i)=zx(k,3)
-        rlist(kaj(4)+i)=zx(k,4)
-        rlist(kaj(5)+i)=zx(k,5)
-        rlist(kaj(6)+i)=zx(k,6)
-        if(calpol)then
-          rlist(kaj(8)+i)=zx(k,8)
-          rlist(kaj(7)+i)=atan(zx(k,9),zx(k,7))
-        endif
+        rlist(kaj(1:6)+i)=zx(k,1:6)
         if(iptbl(k,4) .eq. 0)then
           rlist(kaj(mcf)+i)=1.d0
         else
           rlist(kaj(mcf)+i)=0.d0
         endif
       enddo
+      if(calpol)then
+        do i=1,np
+          k=iptbl(i,1)
+          rlist(kaj(8)+i)=zx(k,8)
+          rlist(kaj(7)+i)=atan(zx(k,9),zx(k,7))
+        enddo
+      endif
       if(lossmap)then
         do i=1,np
           k=iptbl(iptbl(i,1),4)
@@ -587,7 +594,7 @@ c              - Swap particle coordinates
          i=i+1
       enddo
       if(npa .gt. 0)then
-        call tconvm(npa,zx(1,2),zx(1,4),zx(1,6),dv,-1)
+        call tconvm(npa,zx(:,2),zx(:,4),zx(:,6),dv,-1)
         if(calpol)then
           do i=1,npa
             st=1.d0+sqrt1(-zx(i,8)**2)

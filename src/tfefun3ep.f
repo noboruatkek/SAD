@@ -416,8 +416,10 @@ c      endif
 
       subroutine tfcavaluecb(chid,stat,sev,t,type,nc,karray)
       use tfstk
+      use efun
       implicit none
-      integer*8 karray(nc),kx
+      type (sad_descriptor) kx
+      integer*8 karray(nc)
       real*8 chid
       integer*4 stat,sev,type,nc
       real*8 t
@@ -468,7 +470,7 @@ c      endif
       rtastk(isp)=t
       ktastk(isp2)=ktflist+ktfmakelist(isp2)
       isp=isp2
-      call tfefunref(isp0,kx,.true.,irtc)
+      kx=tfefunref(isp0,.true.,irtc)
  9000 if(irtc .gt. 0 .and. ierrorprint .ne. 0)then
         call tfreseterror
       endif

@@ -3,7 +3,7 @@
       use ffs
       use ffs_pointer
       use tffitcode
-      use tfcsi,only:cssetp
+      use tfcsi,only:ipoint
       use tflinepcom
       use ffs_seg
       implicit none
@@ -50,11 +50,11 @@ c
       exist=.true.
       LOOP_II: do iii=1,nl
         i=int(rlist(kav+iii))
-        ii=klp(i)
+        ii=nelvx(i)%klp
         if(get)then
           id=idtypec(ii)
           get=.false.
-          iv=ival(i)
+          iv=nelvx(i)%ival
           kv=0
           var=.true.
           call peekwd(word1,next1)
@@ -75,7 +75,7 @@ c
             minf=.true.
           elseif(word1 .eq. ' ' .or. word1 .eq. '-')then
             next=next1
-            call cssetp(next)
+            ipoint=next
             exist=.true.
             if(cont)then
               go to 9000
@@ -95,7 +95,7 @@ c
             endif
           endif
           next=next1
-          call cssetp(next)
+          ipoint=next
           exist=.true.
  912      if(iv .eq. 0)then
             call termes(lfno,'?No default keyword for ',word)
@@ -120,7 +120,7 @@ c
           elseif(tfreallistq(kx,kl))then
             ivi=-1
           else
-            ivi=ival(i)
+            ivi=nelvx(i)%ival
           endif
           if(ivi .eq. 0)then
             cycle LOOP_II
@@ -135,14 +135,14 @@ c
           ivi=iv
         endif
         if(minf .or. maxf)then
-          ivi=ival(i)
+          ivi=nelvx(i)%ival
         endif
         if(ivi .eq. 0)then
           call termes(lfno,'?No default keyword for ',word)
           exist=.false.
           exit
         endif
-        var=ivi .eq. ival(i)
+        var=ivi .eq. nelvx(i)%ival
         if(rel)then
           call loc_comp(idvalc(ii),cmpd)
           va=cmpd%value(ivi)*(1.d0+v)
@@ -150,19 +150,20 @@ c
           va=v
         endif
         call compelc(ii,cmpd)
+        cmpd%update=cmpd%nparam .le. 0
         if(var)then
           vx=cmpd%value(ivi)/errk(1,ii)
           if(minf)then
             if(maxf)then
-              vlim(i,1)=-abs(va)
-              vlim(i,2)=abs(va)
+              nelvx(i)%vlim(1)=-abs(va)
+              nelvx(i)%vlim(2)=abs(va)
               vx=min(abs(va),max(-abs(va),vx))
             else
-              vlim(i,1)=va
+              nelvx(i)%vlim(1)=va
               vx=max(va,vx)
             endif
           elseif(maxf)then
-            vlim(i,2)=va
+            nelvx(i)%vlim(2)=va
             vx=min(va,vx)
           else
             vx=va

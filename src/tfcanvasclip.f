@@ -290,7 +290,8 @@ c        write(*,*)na,isp-isp0
             y1=rtastk(i+1)
  11         dx=x1-x0
             dy=y1-y0
-            s=sqrt(dx**2+dy**2)
+            s=hypot(dx,dy)
+c            s=sqrt(dx**2+dy**2)
             if(s .gt. 0.d0)then
               s1=s+dash
               if(dash .ge. 0.d0)then
@@ -384,7 +385,7 @@ c        write(*,*)na,isp-isp0
       type (sad_dlist), pointer :: klx,klxi
       type (sad_rlist), pointer :: klxj
       integer*8 ka,kas,kac,kai,kavc,kavs
-      integer*4 isp1,irtc,iav(3),nt,m,itfmessage,isp0,j,i,ii
+      integer*4 isp1,irtc,iav(3),nt,m,itfmessage,isp0,j,i,ii,m3
       real*8 xs,ys,zs,xc,yc,zc
       if(isp .ne. isp1+3)then
         irtc=itfmessage(9,'General::narg','"3"')
@@ -424,8 +425,11 @@ c        write(*,*)na,isp-isp0
         iav(i)=ilist(2,kai+1)
       enddo
       isp0=isp
-      call tfcliptriangle1(m/3,
-     $     rlist(iav(1)+1),rlist(iav(2)+1),rlist(iav(3)+1))
+      m3=m/3
+      call tfcliptriangle1(m3,
+     $     rlist(iav(1)+1:iav(1)+m3),
+     $     rlist(iav(2)+1:iav(2)+m3),
+     $     rlist(iav(3)+1:iav(3)+m3))
       nt=(isp-isp0)/9
       if(nt .le. 0)then
         kx=dxnulll
@@ -671,7 +675,8 @@ c        write(*,*)na,isp-isp0
         rtastk(isp+6)=rlist(kaci2+3)
         isp=isp+6
       enddo
-      call tfcanvas3dlighttriangle1(nt,kat,nc,rtastk(isp0+1),kx,irtc)
+      call tfcanvas3dlighttriangle1(nt,kat,nc,
+     $     rtastk(isp0+1:isp),kx,irtc)
       isp=isp0
       if(irtc .ne. 0)then
         return
@@ -805,7 +810,8 @@ c        write(*,*)na,isp-isp0
       e(2)=rlist(kave+2)/d
       e(3)=rlist(kave+3)/d
       call tfcanvas3dprojection1(ktastk(isp1+1),e,
-     $     rlist(kavx+1),rlist(kavy+1),d,rlist(kavoff+1),kx,irtc)
+     $     rlist(kavx+1:kavx+3),rlist(kavy+1:kavy+3),
+     $     d,rlist(kavoff+1:kavoff+2),kx,irtc)
       return
  9000 irtc=itfmessage(9,'General::wrongtype',
      $     '"[data, Eye, Xproj, Yproj, Offset]"')
@@ -886,13 +892,14 @@ c        write(*,*)na,isp-isp0
       subroutine tfcanvassymbol(isp1,kx,irtc)
       use tfstk
       use strbuf
+      use macmath
       implicit none
       type (sad_descriptor) kx
       type (sad_strbuf), pointer :: strb
       type (sad_string), pointer :: str
       integer*8 ka,kad,kad1,kad2,ks
-      integer*4 isp1,irtc,itfmessage
-      real*8 x,y,s,a,xmin,ymin,xmax,ymax,yoff
+      integer*4 isp1,irtc,itfmessage,i,np
+      real*8 x,y,s,a,xmin,ymin,xmax,ymax,yoff,sa,sh,ar(32),s1
 c      parameter (a=sqrt(0.75d0))
       parameter (a=.866025403784439d0)
       character*2 sym
@@ -963,6 +970,7 @@ c      parameter (a=sqrt(0.75d0))
       endif
       call loc_string(ktfaddr(ktastk(isp1+1)),str)
       call putstringbufb(strb,str%str,str%nch,full)
+      np=0
       if(sym .eq. "1O")then
         call putstringbufb(strb,' create oval ',13,full)
         call tfconvround(strb,x-s)
@@ -973,22 +981,45 @@ c      parameter (a=sqrt(0.75d0))
         call loc_string(ktfaddr(ktastk(isp1+7)),str)
         call putstringbufb(strb,str%str,str%nch,full)
         call putstringbufb1(strb,'}')
-      elseif(sym .eq. "8O")then
-        call putstringbufb(strb,' create polygon ',16,full)
-        call tfconvround(strb,x)
-        call tfconvround(strb,y+s)
-        call tfconvround(strb,x-s*a)
-        call tfconvround(strb,y-s*.5d0)
-        call tfconvround(strb,x+s*a)
-        call tfconvround(strb,y-s*.5d0)
-      elseif(sym .eq. "9O")then
-        call putstringbufb(strb,' create polygon ',16,full)
-        call tfconvround(strb,x)
-        call tfconvround(strb,y-s)
-        call tfconvround(strb,x-s*a)
-        call tfconvround(strb,y+s*.5d0)
-        call tfconvround(strb,x+s*a)
-        call tfconvround(strb,y+s*.5d0)
+      else
+        if(sym(2:2) .eq. "O")then
+          call putstringbufb(strb,' create polygon ',16,full)
+          s1=s*sqrt(m_pi/a/1.5d0)
+          sa=s1*a
+          sh=s1*.5d0
+          if(sym(1:1) .eq. "6")then
+            ar(1:6)=(/x-s1,y,x+sh,y-sa,x+sh,y+sa/)
+          elseif(sym(1:1) .eq. "7")then
+            ar(1:6)=(/x+s1,y,x-sh,y-sa,x-sh,y+sa/)
+          elseif(sym(1:1) .eq. "8")then
+            ar(1:6)=(/x,y+s1,x-sa,y-sh,x+sa,y-sh/)
+          elseif(sym(1:1) .eq. "9")then
+            ar(1:6)=(/x,y-s1,x-sa,y+sh,x+sa,y+sh/)
+          endif
+          np=6
+        elseif(sym .eq. "BX")then
+          s1=s*sqrt(m_pi_4)
+          ar(1:8)=(/x+s1,y-s1,x+s1,y+s1,x-s1,y+s1,x-s1,y-s1/)
+          np=8
+        elseif(sym .eq. "RH")then
+          s1=s*sqrt(m_pi_2)
+          ar(1:8)=(/x+s1,y,x,y+s1,x-s1,y,x,y-s1/)
+          np=8
+        elseif(sym .eq. "PL")then
+          ar(1:24)=(/x+s,y-1,x+s,y+1,x+1,y+1,x+1,y+s,
+     $         x-1,y+s,x-1,y+1,x-s,y+1,x-s,y-1,x-1,y-1,
+     $         x-1,y-s,x+1,y-s,x+1,y-1/)
+          np=24
+        elseif(sym .eq. "TI")then
+          ar(1:24)=(/x+s+1,y+s-1,x+s-1,y+s+1,
+     $         x,y+1,x-s+1,y+s+1,x-s-1,y+s-1,x-1,y,
+     $         x-s-1,y-s+1,x-s+1,y-s-1,x,y-1,x+s-1,y-s-1,
+     $         x+s+1,y-s+1,x+1,y/)
+          np=24
+        endif
+        do i=1,np
+          call tfconvround(strb,ar(i))
+        enddo
       endif
       call putstringbufb(strb,' -fill {',8,full)
       call loc_string(ktfaddr(ktastk(isp1+6)),str)
@@ -1009,12 +1040,13 @@ c      parameter (a=sqrt(0.75d0))
 
       subroutine tfcanvassymboldirect(isp1,kx,irtc)
       use tfstk
+      use macmath
       implicit none
       type (sad_descriptor) kx
       integer*8 ks,ka,kad,kad1,kad2,kat,
      $     kavx,kavy,ktrsaloc,ka2
       integer*4 isp1,irtc,itfmessage,isp0,m,i
-      real*8 x,y,s,a,xmin,xmax,ymin,ymax,yoff,wmin
+      real*8 x,y,s,a,xmin,xmax,ymin,ymax,yoff,wmin,sa,sh,s1
       logical*4 ol
       type (sad_descriptor), save ::
      $     ioutline,ifill,itag,iwidth,ibar
@@ -1092,11 +1124,10 @@ c      parameter (a=sqrt(0.75d0))
       xmax=rlist(kad2+1)
       ymax=rlist(kad2+2)
       yoff=rlist(ktfaddr(ktastk(isp1+9)+2))
-      if(ktfnonrealq(ktastk(isp1+5)))then
+      if(ktfnonrealq(ktastk(isp1+5),s))then
         irtc=itfmessage(9,'General::wrongtype','"size for #5"')
         return
       endif
-      s=rtastk(isp1+5)
       if(ktfnonstringq(ktastk(isp1+6)))then
         irtc=itfmessage(9,'General::wrongtype','"fill color for #6"')
         return
@@ -1153,47 +1184,49 @@ c      endif
         isp=isp+1
         if(sym .eq. "1O")then
           rtastk(isp)=rtastk(isp1+10)
-          rtastk(isp+1)=x-s
-          rtastk(isp+2)=y-s
-          rtastk(isp+3)=x+s
-          rtastk(isp+4)=y+s
+          rtastk(isp+1:isp+4)=(/x-s,y-s,x+s,y+s/)
           isp=isp+5
-        elseif(sym .eq. "6O")then
+        elseif(sym(2:2) .eq. "O")then
+          s1=s*sqrt(m_pi/a/1.5d0)
+          sa=s1*a
+          sh=s1*.5d0
           rtastk(isp)=rtastk(isp1+11)
-          rtastk(isp+1)=x-s
-          rtastk(isp+2)=y
-          rtastk(isp+3)=x+s*.5d0
-          rtastk(isp+4)=y-s*a
-          rtastk(isp+5)=x+s*.5d0
-          rtastk(isp+6)=y+s*a
+          if(sym(1:1) .eq. "6")then
+            rtastk(isp+1:isp+6)=(/x-s1,y,x+sh,y-sa,x+sh,y+sa/)
+          elseif(sym(1:1) .eq. "7")then
+            rtastk(isp+1:isp+6)=(/x+s1,y,x-sh,y-sa,x-sh,y+sa/)
+          elseif(sym(1:1) .eq. "8")then
+            rtastk(isp+1:isp+6)=(/x,y+s1,x-sa,y-sh,x+sa,y-sh/)
+          elseif(sym(1:1) .eq. "9")then
+            rtastk(isp+1:isp+6)=(/x,y-s1,x-sa,y+sh,x+sa,y+sh/)
+          endif
           isp=isp+7
-        elseif(sym .eq. "7O")then
+        elseif(sym .eq. "BX")then
+          s1=s*sqrt(m_pi_4)
           rtastk(isp)=rtastk(isp1+11)
-          rtastk(isp+1)=x+s
-          rtastk(isp+2)=y
-          rtastk(isp+3)=x-s*.5d0
-          rtastk(isp+4)=y-s*a
-          rtastk(isp+5)=x-s*.5d0
-          rtastk(isp+6)=y+s*a
-          isp=isp+7
-        elseif(sym .eq. "8O")then
+          rtastk(isp+1:isp+8)=
+     $         (/x+s1,y-s1,x+s1,y+s1,x-s1,y+s1,x-s1,y-s1/)
+          isp=isp+9
+        elseif(sym .eq. "RH")then
+          s1=s*sqrt(m_pi_2)
           rtastk(isp)=rtastk(isp1+11)
-          rtastk(isp+1)=x
-          rtastk(isp+2)=y+s
-          rtastk(isp+3)=x-s*a
-          rtastk(isp+4)=y-s*.5d0
-          rtastk(isp+5)=x+s*a
-          rtastk(isp+6)=y-s*.5d0
-          isp=isp+7
-        elseif(sym .eq. "9O")then
+          rtastk(isp+1:isp+8)=
+     $         (/x+s1,y,x,y+s1,x-s1,y,x,y-s1/)
+          isp=isp+9
+        elseif(sym .eq. "PL")then
+          s1=s*1.2d0
           rtastk(isp)=rtastk(isp1+11)
-          rtastk(isp+1)=x
-          rtastk(isp+2)=y-s
-          rtastk(isp+3)=x-s*a
-          rtastk(isp+4)=y+s*.5d0
-          rtastk(isp+5)=x+s*a
-          rtastk(isp+6)=y+s*.5d0
-          isp=isp+7
+          rtastk(isp+1:isp+24)=(/x+s1,y-1,x+s1,y+1,x+1,y+1,x+1,y+s1,
+     $         x-1,y+s1,x-1,y+1,x-s1,y+1,x-s1,y-1,x-1,y-1,
+     $         x-1,y-s1,x+1,y-s1,x+1,y-1/)
+          isp=isp+25
+        elseif(sym .eq. "TI")then
+          rtastk(isp)=rtastk(isp1+11)
+          rtastk(isp+1:isp+24)=(/x+s+1,y+s-1,x+s-1,y+s+1,
+     $         x,y+1,x-s+1,y+s+1,x-s-1,y+s-1,x-1,y,
+     $         x-s-1,y-s+1,x-s+1,y-s-1,x,y-1,x+s-1,y-s-1,
+     $         x+s+1,y-s+1,x+1,y/)
+          isp=isp+25
         elseif(sym .eq. "BA")then
           if(ol)then
             rtastk(isp)=rtastk(isp1+12)

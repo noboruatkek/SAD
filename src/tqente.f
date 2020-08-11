@@ -1,5 +1,7 @@
       subroutine tqente(trans,cod,beam,al,bz,irad)
       use mathfun, only: sqrtl
+      use sol, only:tsoldz
+      use temw,only:tmulbs
       implicit none
       integer*4 irad,i
       real*8 trans(6,12),cod(6),beam(42),trans1(6,6),trans2(6,6),
@@ -79,6 +81,7 @@
         enddo
       else
         bzh=bz*.5d0
+c cod are canonical!
         pxi=cod(2)+bzh*cod(3)
         pyi=cod(4)-bzh*cod(1)
         a=pxi**2+pyi**2
@@ -97,7 +100,8 @@
         cod(4)=pyi
         z0=cod(5)
         call tsoldz(trans1,cod,r,0.d0,0.d0,bz,.false.)
-        call tmultr(trans2,trans1,6)
+        trans2=matmul(trans1,trans2)
+c        call tmultr(trans2,trans1,6)
         cod(5)=z0-(a/pr/(pr+pz))**2*(2.d0*pr+pz)/pz/2.d0*al
         trans2(5,5)=1.d0
         trans2(5,6)=a**2*(pr**2+pr*pz+pz**2)/(pr*pz)**3/(pr+pz)*al
@@ -133,12 +137,13 @@
      $       +trans2(2,4)*trans2(1,6)
      $       -trans2(3,4)*trans2(4,6)
      $       +trans2(4,4)*trans2(3,6)
-c      write(*,'(a/,6(1p6g11.4/))')
-c     $     'tqente-2 ',((trans2(i,j),j=1,6),i=1,6)
         call tmultr5(trans,trans2,irad)
+c      write(*,'(a/,6(1p6g11.4/))')
+c     $     'tqente-2 ',((trans(i,j),j=1,6),i=1,6)
+c      write(*,*)'with irad: ',irad
       endif
       if(irad .gt. 6)then
-        call tmulbs(beam,trans2,.true.,.true.)
+        call tmulbs(beam,trans2,.true.)
       endif
       return
       end

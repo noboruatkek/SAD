@@ -39,7 +39,8 @@ c        sp=sp+g(i)*(2.d0+g(i))
       ty=sin(tilt)
       sigz=sqrt(szz/np-sz**2)
       sig1=.5d0*(sxx+syy)
-      sig2=.5d0*sqrt((sxx-syy)**2+4.d0*sxy**2)
+      sig2=.5d0*hypot(sxx-syy,2.d0*sxy)
+c      sig2=.5d0*sqrt((sxx-syy)**2+4.d0*sxy**2)
       sigu=sqrt(sig1+sig2)
       sigv=sqrt(abs(sig1-sig2))
       pb=p0*(1.d0+sp/np)
@@ -205,6 +206,7 @@ C******************** CWERF ****************************************
       COMPLEX*16 Z
       LOGICAL B
       DATA CONST/1.12837 91670 9551D0/
+      H2=0.d0
       XX=dble(Z)
       YY=imag(Z)
       X=ABS(XX)
@@ -285,10 +287,11 @@ C
       EQUIVALENCE (DDF,FRI)
 C
       IF(K.EQ.2) THEN
-        DO 100 J=1,4
-          DO 100 I=1,4
- 100        T(I,J)=0D0
-          ENDIF
+        T=0.d0
+c        DO 100 J=1,4
+c          DO 100 I=1,4
+c 100        T(I,J)=0D0
+      ENDIF
       EX=0.5*((D(1)/S(1))**2+(D(2)/S(2))**2)
       IF(EX.LE.1D-12) GOTO 300
       G=0D0

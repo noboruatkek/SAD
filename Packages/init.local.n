@@ -11,4 +11,3 @@ Environment@@[{
 DocumentsDirectory="/opt/src/SAD/GIT/fork/Documents/";
 ExamplesDirectory="/opt/src/SAD/GIT/fork/script/";
 
-! End of File

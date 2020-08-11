@@ -14,7 +14,7 @@ SetAttributes[{OneTurnInformation,Orbit,Matrix,ExpandElementValues,
   NominalSpinTune,PolarizationTime,
   TransferMatrices,IntrabeamExcitation,SaveEMIT,AzimuthalModes,SpinTune,
   Polarization,Polarizations,
-  PolarizationVector},
+  PolarizationVector,Region},
   Constant];
 
 BeginPackage[emit$`,tws$`,`];
@@ -23,11 +23,12 @@ Begin[emit$`];
 
 With[{default={OneTurnInformation->False,
   Orbit->False,Matrix->False,ExpandElementValues->True,
-  Emittance->True,SaveEMIT->False,InitialOrbit->Null,
+  Emittance->True,SaveEMIT->False,InitialOrbit->Null,Region->{1,-1},
   InitialBeamMatrix->Null,Output->0}},
 
   Emittance[opt___]:=Module[{
-    e,r,op,mode,ex0=EMITX,ey0=EMITY,ez0=EMITZ,iniorbit,inibeam,out},
+    e,r,op,mode,ex0=EMITX,ey0=EMITY,ez0=EMITZ,sz0=SIGZ,se0=SIGE,
+    iniorbit,inibeam,out,reg},
     Check[
       op=Override[opt,default];
       If[ExpandElementValues/.op,Element["EXPAND"]];
@@ -36,11 +37,12 @@ With[{default={OneTurnInformation->False,
           If[Orbit/.op,2,
             If[OneTurnInformation/.op,1,
               If[Emittance/.op,0,-1,0],0],0],0];
-      {iniorbit,inibeam,out}={InitialOrbit,InitialBeamMatrix,Output}/.op;
+      {iniorbit,inibeam,out,reg}={InitialOrbit,InitialBeamMatrix,Output,Region}/.op;
+      reg=LINE["POSITION",reg];
       If[inibeam<=>Null,
         inibeam=Flatten[Table[inibeam[[i,j]],{i,6},{j,i}]]];
-      e=CalculateEmittance[mode,out,{iniorbit,inibeam}];
-      r={Stable->e[[1]],Tunes->e[[2,{ipnx,ipny,ipnz}]],
+      e=CalculateEmittance[mode,out,{iniorbit,inibeam},reg];
+      r={Stable->e[[1]],Region->reg,Tunes->e[[2,{ipnx,ipny,ipnz}]],
         EnergyLossU0->e[[2,ipu0]],RfVoltageVc->e[[2,ipvceff]],
         EquilibriumPosition->e[[2,iptrf0]],MomentumCompaction->e[[2,ipalphap]],
         OrbitDilation->e[[2,ipdleng]],BucketHeight->e[[2,ipbh]],
@@ -72,9 +74,9 @@ With[{default={OneTurnInformation->False,
             AppendTo[r,TransferMatrices->e[[5]]];
             If[?INTRA,
               AppendTo[r,IntrabeamExcitation->e[[6]]]]]]];
-      If[~(SaveEMIT/.op),EMITX=ex0;EMITY=ey0;EMITZ=ez0];
+      If[~(SaveEMIT/.op),EMITX=ex0;EMITY=ey0;EMITZ=ez0;SIGE=se0;SIGZ=sz0];
       r,
-      EMITX=ex0;EMITY=ey0;EMITZ=ez0;{}]]
+      EMITX=ex0;EMITY=ey0;EMITZ=ez0;SIGE=se0;SIGZ=sz0;{}]]
 
   ];
 

@@ -80,18 +80,18 @@ static real8 r_true = 1.0;
 extern real8    atof_(const_character, integer4*, ftnlen);
 extern integer4 hsrch_(const_character, ftnlen);
 extern integer4 hsrchz_(const_character, ftnlen);
-extern integer4 igetgl1_(const_character, ftnlen);
+extern integer4 igetgl_(const_character, ftnlen);
 extern real8    rgetgl1_(const_character, ftnlen);
 extern void capita_(character, ftnlen);
-extern void tfreadbuf_(integer4*, integer4*, integer4*, integer4*,
-		       integer4*, const_character, ftnlen);
+extern void tfreadbuf_(integer4*, integer4*, integer4*);
+extern void __tfrbuf_MOD_trbinit(integer4*, integer4*);
 extern void gettok_(character, integer4*, integer4*, real8*, integer4*, ftnlen);
 extern void __tfmem_MOD_tfree(integer8*);
 extern integer4 itfdownlevel_(void);
 extern logical8 tfruleqk_(integer8*);
 extern logical4 tfsamesymbolq_(integer4*, integer4*);
 extern logical4 tfsamesymbolqk_(integer8*, integer8*);
-extern integer4 itopenbuf_(integer4*);
+extern integer4 itopenbuf_(integer4*, integer4*);
 extern integer4 itfsyserr_(integer4*);
 extern integer8 ktfcopy_(integer8*);
 extern integer8 kfromr_(real8*);
@@ -115,9 +115,8 @@ extern integer4 itfunaloc_(const_character, integer4*, integer4*,
 extern integer8 ktfmakelist_(integer4*);
 extern void tfsetlist_(integer8*, integer8*, integer4*);
 extern void tfgetstr_(character, ftnlen, integer8*, integer4*);
-extern void tfevalb_(const_character, integer4*,
-		     integer8*, integer4*, ftnlen);
-extern void tfevalc_(const_character, integer4*, ftnlen);
+extern void tfevalb_(const_character, integer4, integer8*, integer4*);
+extern void tfevalc_(const_character, integer4);
 extern void tfdeval_(integer4*, integer8*, integer8*, 
 		     integer4*, logical4 *, integer4*, integer4*);
 extern void tflocal_(integer8*);
@@ -129,7 +128,8 @@ extern integer4 itfgetoptionstk(integer4, const char**);
 extern int tfinitstk(tfstk_t*, integer4);
 
 /* Internal API Wrapper Prototypes */
-extern void tfreadbuf(integer4, integer4, integer4*, integer4*, const char*);
+extern void tfreadbuf(integer4, integer4*, integer4*);
+extern void trbinit(integer4, integer4*);
 extern real8 rgetgl1(const char*);
 extern integer4 itfsyserr(integer4);
 extern integer8 ktfcopy(integer8);

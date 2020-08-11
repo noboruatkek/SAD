@@ -72,6 +72,8 @@
       use wsbb
       use tfstk
       use tmacro
+      use photontable
+      use ffs_flag
       implicit none
       real*8 x(np),px(np),y(np),py(np),z(np),g(np),dv(np),
      $     spx(np),spy(np),spz(np)
@@ -82,7 +84,7 @@ c      integer*4 n,i,is,j,jl,jm,ju,iseed,irtc
       integer*4 n,i,is,j,jl,jm,ju,irtc
       LOGICAL*4 icross,tilt,deform,cod
       real*8 a2,a2x,a2y,acx,acy,asp,c1,cdu,d1x,d1y,dux,duy,delg,dLum
-      real*8 fx0,fy0,fxy,gamp,gxy,h1,hi,pn,pxy2,pz
+      real*8 fx0,fy0,fxy,gamp,gxy,h1,p1,hi,pn,pxy2,pz,pxi,pyi
       real*8 sigz,xx,yy,w1x,w1y
       real*8 cosx,sinx,tanx,sig11x,sig11y,sig12x,sig12y,sqrsig11,sz
       real*8 sint,cost
@@ -99,8 +101,8 @@ c      integer*4 n,i,is,j,jl,jm,ju,iseed,irtc
 
       bstrhl=colb%bstrl
 
-!      write(*,'(A,I6,1P,3E12.3)') 'Welcome to beambeam',
-!     &     iturn,colb%ce,colb%gamma
+c      write(*,'(A,2I6,1P,3E12.3)') 'Welcome to beambeam',
+c     &     iturn,colb%nslice,colb%ce,colb%gamma
 !      write(*,'(4F10.5,I5)') colb%xangle(1),colb%xangle(2),
 !     &     colb%xangle(3),colb%xangle(4),colb%nslice
 !      write(*,'(5E12.4)') (p_in(i),i=1,30)
@@ -242,7 +244,7 @@ c      call tfmemcheckprint('beambeam',1,.false.,irtc)
             if(is.eq.colb%nslice) dsz=(colb%zslice(nslimax+is-1)+5.)*
      &           sigz*0.5
             
-!       write(*,*) ' In loop ',is
+c       write(*,*) ' In loop ',is
             pxy2=px(i)**2+py(i)**2
             sz=(z(i)-colb%zslice(is)*sigz)/2.d0
 !
@@ -251,7 +253,7 @@ c      call tfmemcheckprint('beambeam',1,.false.,irtc)
             x(i)=x(i)+px(i)*sz
             y(i)=y(i)+py(i)*sz
             g(i)=g(i)-pxy2*0.25d0
-
+            pn=1.+g(i)
 !     center of mass of each slice
 
 !       write(*,'(2D25.15)') x(1),px(1),y(1),py(1),z(1),g(1)
@@ -403,6 +405,16 @@ c               xx=tran(iseed)
                   xij=xi(j)+(xi(j+1)-xi(j))*(xx-SwI(j))/
      &                 (SwI(j+1)-SwI(j))
                   delg=cubs*rhoi*exp(xij)
+!    emitted photon info. is send to SAD.  2019/10/1
+                  if(photons) then
+                     pxi=px(i)/pn
+                     pyi=py(i)/pn
+                     p1=colb%gambet*pn
+                     h1=gamp*pn
+                     write(*,*) x(i),pxi,y(i),pyi,delg
+                     call tphotonconv(x(i),pxi,y(i),pyi,delg,0.d0,
+     &                    p1,h1,sz,i)
+                  endif
 !                  write(*,'(I4,1P,7E12.4)') 
 !     &                 j,xi(j),xi(j+1),xij,SwI(j),SwI(j+1),xx,delg
                   g(i)=g(i)-delg
@@ -490,6 +502,12 @@ c      call tfmemcheckprint('beambeam',5,.false.,irtc)
 
 !   pn=|p|/p0=1+delta
 c      call tfmemcheckprint('beambeam',7,.false.,irtc)
+      call limitnan(x,-1.d4,1.d4)
+      call limitnan(px,-1.d4,1.d4)
+      call limitnan(y,-1.d4,1.d4)
+      call limitnan(py,-1.d4,1.d4)
+      call limitnan(z,-1.d10,1.d10)
+      call limitnan(g,-1.d0,1.d4)
       do  i=1,np
          pn=1.d0+g(i)
          px(i)=px(i)/pn
@@ -501,16 +519,22 @@ c      call tfmemcheckprint('beambeam',7,.false.,irtc)
 
 !      write(*,*) 'blist(nblist)',blist(nblist)
 c      call descr_sad(dfromk(int8(blist(nblist)+0.1d0)),symd)
-      call descr_sad(dfromr(blist(nblist)),symd)
-      rlum_col=colb%Luminosity/colb%nslice/np
-c      call tfmemcheckprint('beambeam',8,.false.,irtc)
-      symd%value=dfromr(rlum_col)
+c      call descr_sad(dfromr(blist(nblist)),symd)
+c     modified to use kvlum in wsbb
+      if(kvlum%k .ne. 0)then
+        call descr_sad(kvlum,symd)
+        rlum_col=colb%Luminosity/colb%nslice/np
+        if(ktfenanq(rlum_col))then
+          rlum_col=0.d0
+        endif
+        symd%value=dfromr(rlum_col)
 !     call tfsetlist(ntfreal,0,rlum_col,iax,1)
 !!!!      iax=colb%iax
 !!!!      rlist(iax)=rlum_col
-c      call tfmemcheckprint('rlum_col',0,.false.,irtc)
+      endif
+c      call tfmemcheckprint('rlum_col',0,.true.,irtc)
       call LumRead(rlum_col)
-c      call tfmemcheckprint('rlum_col',1,.false.,irtc)
+c      call tfmemcheckprint('rlum_col',1,.true.,irtc)
 !       write(*,*) rlum_col
 !
 
@@ -523,7 +547,10 @@ c      call tfmemcheckprint('rlum_col',1,.false.,irtc)
       use besseltab
       use wsbb
       use tfstk
+      use kyparam
       use tmacro
+      use photontable
+      use ffs_flag
       implicit none
       integer*4 idummy,nsli,i,irtc
 !  parameter (nblist=1600,tbuf0=1100,nslimax=500)
@@ -532,7 +559,8 @@ c      call tfmemcheckprint('rlum_col',1,.false.,irtc)
       real*8 m_B(36),m_R(36),m_H(36),m_HRB(36),m_Emit(36)
       real*8 p_in(70),rne,blist(nblist)
       real*8 rgetgl,gauinv,rfromk
-      type (sad_descriptor) kv
+      real*8 cnbs,cpbs,cubs,gamp
+c      type (sad_descriptor) kv
       type (sad_symdef), pointer :: vsymd
 !      integer*4 itlookup,itfsymbol
       real*8 sigx,sigy,sigz,az,bz,emiz,dp,pwb0,yy
@@ -549,13 +577,15 @@ c      call tfmemcheckprint('rlum_col',1,.false.,irtc)
 !         write(*,*) 'colb is allocated'
 !      endif
       
-      rne=p_in(29)
-      nsli=int(p_in(28))
+      rne=p_in(ky_NP_BEAM)
+      nsli=int(p_in(ky_SLI_BEAM))
       colb%bstrl=p_in(53)
             
       colb%nslice=nsli
       if(nsli .le. 0) then
-         colb%nslice=1
+c 23 Jan 2020 by KO, modified to use non positive SLICE to disable BB.
+c         colb%nslice=1
+         colb%nslice=0
       endif
       if(nsli .gt. nslimax) then
          write(*,*)'*******************************'
@@ -651,7 +681,7 @@ c      call tfmemcheckprint('rlum_col',1,.false.,irtc)
 
       pwb0=rgetgl('MOMENTUM',idummy)
       colb%gambet=pwb0/am_e
-      colb%gamma=sqrt(colb%gambet**2+1)
+      colb%gamma=sqrt(colb%gambet**2+1.)
 !       write(*,*) ' Weak beam momentum '
 !       write(*,'(3F15.3/)') (blist(i_p0+i),i=0,2)
 
@@ -676,7 +706,16 @@ c      call tfmemcheckprint('rlum_col',1,.false.,irtc)
 !       write(*,'(A/,1P,(5D12.5)/)')
 !     &    '    dx          dpx         dy         dpy        dz',
 !     &            (blist(i_cod+i),i=0,4)
-
+      if(colb%bstrl.gt.0) then 
+         gamp=colb%gamma
+         cnbs=5.*sqrt(3.)*finest*gamp/6.
+         cpbs=2*re*gamp*gamp*gamp/3
+         cubs=1.5d0*hbar*cveloc*gamp*gamp/am_e
+         write(*,'(A,1P,4E12.4)') 'beamstrahlung ',gamp,cnbs,cpbs,cubs
+         if(photons) then
+            call tsetphotongeo(0.d0,0.d0,0.d0,.true.)
+         endif
+      endif
 
 !-------------------------------------------------------------------
 !         z slicing
@@ -765,14 +804,13 @@ c      call tfmemcheckprint('rlum_col',1,.false.,irtc)
 c
 c If we return list the allocation should be done in each track.
 c that is this if block should be remove to beambeam.
-       if(itfcontext.gt.0) then
-         kv=kxsymbolz(vname,len(vname),vsymd)
+       if(kvlum%k .eq. 0) then
+c     modified to use kvlum in wsbb
+         kvlum=kxsymbolz(vname,len(vname),vsymd)
          call tflocald(vsymd%value)
 c     In the case of only one real variable.
-         blist(nblist)=rfromk(kv%k)
+c         blist(nblist)=rfromk(kv%k)
          vsymd%value=dfromr(0.d0)
-       else
-         kv%k=0
        endif
 
 !      write(*,*) kv%k
@@ -787,6 +825,7 @@ c       call tfmemcheckprint('storecolb',1,.true.,irtc)
 
       subroutine LumRead(rlum_col)
       use tfstk
+      use efun
 c      use tfcbk
       implicit none
       type (sad_descriptor) kx,kem
@@ -817,7 +856,7 @@ c      isp=isp+1
 c      itastk(1,isp)=ntfreal
 c      vstk(ivstkoffset+isp)=sigz
 
-      call tfefunref(isp0+1,kx,.false.,irtc)
+      kx=tfefunref(isp0+1,.false.,irtc)
 c      call tfdebugprint(kx,'LumRead',1)
       isp=isp0
       level=itfdownlevel()
@@ -859,7 +898,3 @@ c      call tfdebugprint(kx,'LumRead',1)
       enddo
       return
       end subroutine mkbesseltab
-
-
-
-

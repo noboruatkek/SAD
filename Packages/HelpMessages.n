@@ -1,6 +1,19 @@
-Help$Update="$Date:  6/2/2019 18:00:00 $"[8,17];
-!Help$Update=("$Date: "//DateString[][1,10]//" $")[8,17];
+!Help$Update="$Date: 2/25/2019 18:00:00  $"[8,18];
+Help$Update=("$Date: "//DateString[][1,10]//" $")[8,17];
 Help$Version=$Version;
+
+N$pole[2]="dipole";
+N$pole[4]="quadrupole";
+N$pole[6]="sextupole";
+N$pole[8]="octupole";
+N$pole[10]="decapole";
+N$pole[12]="dodecapole";
+N$pole[n_]:=StandardForm[n//"-pole"];
+N$deriv[0]="";
+N$deriv[1]="'";
+N$deriv[2]="''";
+N$deriv[3]="'''";
+N$deriv[n_]:=StandardForm["^{("//n//")}"];
 
 Help$Messages=(Print["SAD/FFS Help Update: ",Help$Update];{
 {" ",
@@ -91,7 +104,7 @@ where l1, l2 are either an element or a line. n1, n2 are positive integers to re
  An element with negative orientation means a reversal of the element along the z-axis. Thus all magnets except for a solenoid does not change the polarity. A solenoid changes the polarity. An RF cavity should change, however, it does not in the current implementation. The edge angles and fringe parameters of the entrance and the exit swap.\n\
  AX, AY, AZ, EPX, EPY, ZPX, ZPY, R2, R3 of a MARK element are reversed.\n\
  The orientation is printed out by DISP. It can be accessed by LINE[\"DIR\"] . ",
-         "beam-line LINE",
+         "beam-line BeamLine LINE",
          {}},
 
        {"beam-line-functions",
@@ -116,7 +129,7 @@ Examples:\n\
 2) aaa=ExtractBeamLine[];\n\
    USE Join[aaa,-aaa]\n\n\
  In these cases the new beam line becomes a new LINE in the MAIN level, with a name which is created automatically.",
-        "ExtractBeamLine PrintBeamLine WriteBeamLine USE VISIT",
+        "ExtractBeamLine PrintBeamLine WriteBeamLine orientation-of-an-element USE VISIT",
         {}},
 
        {"BeamLineName",
@@ -147,6 +160,11 @@ writes the BeamLine b1,.. to stdout. If b1.. is omitted the current beam line is
         {}}}]}
 
        }]},
+
+   {"BEAMSIZE(BEAM)",
+   "Calculate the beam size with the current Twiss parameters. The calculation is in 5D and not correct if the synchrotron motion is significant. Use EMITTANCE(EMIT) with CODPLOT for a 6D calculation.",
+   "DISPLAY(DISP) EMITTANCE(EMIT) CODPLOT",
+   {}},
 
    {"GO",
    "\
@@ -195,19 +213,25 @@ Example: CALC BX BY CAL",
   {"DISPLAY(DISP)",
    "Usage: DISP_LAY [keywords] [pattern-string] [region]\n\n\
 Displays values of various optical-/geometric-functions at the components given by the pattern-string in the region (see region) in the current beam line. It has several display modes specified by the keywords. As the default, it displays AX, BX, NX, EX, EPX, AY, BY, NY, EY, EPY, LENG, the length and the value of the default-keyword of the component. Each line refers to the entrance of each component of the line. The end of the beam line has the name \"$$$\". The first component can be specified by \"^^^\".\n\
-   DISP does not calculate the functions to be displayed, so CALCULATE(CALC) is necessary whenever values of components are updated.",
+   DISP suspends the output to the terminal at every 66 lines, asking (q_uit, c_ontinue, a_ll)?. The further output depends on the first character of the answer from the terminal input. This dialog is suppressed by specifying ALL.\n\
+   DISP does not calculate the functions to be displayed, so CALCULATE(CALC) or GO is necessary whenever values of components are updated.",
    "TYPE(T) optical-functions geometric-functions",
     Sort[
     {{"GEOMETRY(G)",
-      "DISP G displays geometric information of the beam line. It shows the geometry at the coordinate, except for a SOL region, where the geometry at the orbit is shown.",
-      "geometric-functions matching-function-commands",
+      "DISP G displays geometric information of the beam line. It shows the geometry of the coordinate.",
+      "geometric-functions matching-function-commands OGEOMETRY(OG)",
       {}},
+
+      {"GAMMA(GA)",
+       "DISP GA displays gamma functions for x and y, instead of dispersions, as well as gamma*L, which is nealry equal to the natural chromaticity.",
+       "",
+       {}},
 
       {"OGEOMETRY(OG)",
       "DISP OG displays geometric information at the orbit.",
-      "geometric-functions matching-function-commands",
+      "geometric-functions matching-function-commands GEOMETRY(G)",
       {}},
-      
+ 
      {"ORBIT(O)",
       "\
 DISP O displays the orbits DX, DPX, DY, DPY together with the other \n\
@@ -245,23 +269,36 @@ DISP A displays the nominal energy, energy deviation(DDP), longitudinal position
       {}},
 
       {"Z",
-       "DISP Z displays muatching functions related to the Z plane: AZ BZ NZ DZ DDP ZX ZPX ZY ZPY , which are obtained by CAL/GO with CALC6D.",
+       "DISP Z displays muatching functions related to the Z plane: AZ BZ NZ DZ DDP ZX ZPX ZY ZPY GMZ , which are obtained by CAL/GO with CALC6D.",
       "extended-Twiss-parameters CALC6D CALC4D",
       {}},
+
+      {"REFERENCE(RE)",
+        "Specify the reference optics to be displayed.",
+        "reference-optics REFERENCE(REF) DISPLAY(DISP) DREFERENCE(DRE) Twiss OpticsPlot",
+        {}},
+
+      {"DREFERENCE(DRE)",
+        "Display the difference between the reference optics. (beta - betaR)/betaR are displayed for BX, BY, BZ.",
+        "reference-optics REFERENCE(REF) DISPLAY(DISP) REFERENCE(RE) Twiss OpticsPlot",
+        {}},
 
      {"region",
       "Region for DISPLAY(DISP) is specified as \n\n\
         DISP .... begin [end] \n\n\
-with begin and end having the form name[.order][{+-}offset] (see components).\n\n\
-Example:   DISP ... QF.2-10 QD+5\n\n\
+with begin and end having the form name[.order][{+-}offset], or the component number (see components).\n\n\
+Example:   DISP ... QF.2-10 QD+5\n\
+           DISP ... 100 200\n\n\
 displays functions starting at 10 elements upstream from the entrance of the second QF through 5 elements downstream from the entrance of the first QD. The region for DISP is kept after once set. It is shown in the second part of the prompt when FFSPRMPT is ON, and also seen by the STATUS(STAT) command.\n\
- The components which match the pattern-string in DISP are only chosen in the current region.",
+   If begin points to a component after end, DISP displays from begin to $$$, then from ^^^ to end.\n\
+   ALL can be specified before the region. In such a case, the dialog for the output control is suppressed.\n\
+   The components which match the pattern-string in DISP are only chosen in the current region.",
       "ALL pattern-string components STATUS(STAT)",
       {}},
 
      {"ALL",
       "\
-ALL is a word to choose the entire beam line for the region to be displayed.",
+ALL is a word to choose the entire beam line for the region to be displayed. If ALL is given, a dialog at every 66 lines to control the output to the terminal is suppressed. Thus \"DISP ALL e1 e2\" works to suppress the dialog for the output region e1 from e2.",
       "region pattern-string",
       {}},
 
@@ -286,6 +323,21 @@ ALL is a word to choose the entire beam line for the region to be displayed.",
    "STOP QUIT SAVE USE VISIT BYE",
    {}},
 
+   {"SUSPEND(SUSP)",
+   "Suspend reading from the current input stream, and wait for input from the console. Resumes by RESUME(RES)",
+   "RESUME(RES) END",
+     {}},
+
+   {"RENUMBER(RENUM)",
+   "RENUM comp renumbers the component number starting from a component comp.",
+   "components",
+     {}},
+
+   {"RESUME(RES)",
+   "Resumes reading from the previous input stream suspended by SUSPEND(SUSP) or END.",
+   "SUSPEND(SUSP) END",
+     {}},
+
   {"SAVE",
    "Usage: SAVE [element-pattern]\n\n\
 saves the values of the elements. What are saved are the value of the default keyword of all elements, the values of the non-default keywords which have been changed manually or by the matching. If ALL is given it resets all keywords. If element-pattern is given, it is only limited to the elements which match the pattern, otherwise all elements are saved.",
@@ -298,6 +350,14 @@ restores the value of the elements. What are restored are the value of the defau
    "SAVE USE VISIT wildcards RECOVER(REC)",
    {}},
 
+  {"REFERENCE(REF)",
+    "REFERENCE(REF) sets the current optics as the reference optics.",
+    "reference-optics",
+    {{"reference-optics",
+      "Optics stored as a reference. Can be refered by DISP REF (mode), DRAW, Twiss, OpticsPlot. Set automatically by the first CALC or GO after USE. Can be updated by REFERENCE(REF).",
+      "REFERENCE(REF) DISPLAY(DISP) DRAW Twiss OpticsPlot",
+      {}}}},
+
   {"wildcards",
    "\
    Many commands and functions accept the wildcards as a specification for the name of elements or components. The valid wildcards are:\n\n\
@@ -306,7 +366,7 @@ restores the value of the elements. What are restored are the value of the defau
        {..}      matches any character enclosed.\n\
        {^..}     matches any character not enclosed.\n\
        ..|..     alternative pattern.",
-   "elements components DISPLAY(DISP) TYPE(T) SAVE RESET FREE FIX machine-errors ATTRIBUTE(ATTR)\
+   "elements components DISPLAY(DISP) TYPE(T) SAVE RESET FREE FIX ATTRIBUTE(ATTR)\
  REJECT CALCULATE(CAL) functions Element LINE Twiss",
    {}},
 
@@ -364,7 +424,7 @@ executes the character-string-expression as FFS commands.",
 Usage: (1) FIT [component]\n\
        (2) FIT component1 component2\n\n\
 sets the current location where the matching condition is applied. The component is given with the form name[.order][{+-}offset] (see components). If component is omitted, the end of the beam line is chosen.\n\
-   If two components are given, it means a relative-fitting or zone-fitting. If the fitting condition is not maximum-fitting, the condition means to make values at two components equal (for AX, BX, AY, BY, EX, EPX, EY, EPY, R1, R2, R3, R4, DX, DPX, DY, DPY, PEX, PEPX, PEY, PEPY, CHI1, CHI2, CHI3),  or have the specified difference (for NX, NY, LENG, GX, GY, GZ). If the fitting condition is maximum-fitting, the condition means a zone-fitting (for AX, BX, AY, BY, EX, EPX, EY, EPY, R1, R2, R3, R4, DX, DPX, DY, DPY, PEX, PEPX, PEY, PEPY, CHI1, CHI2, CHI3), which suppress the maximum of the function in the region between component1 and component2, or maximum-fitting for the difference of the function (for NX,  NY, LENG, GX, GY, GZ). The fit region is shown in the first part of the prompt when FFSPRMPT is ON.\n\n\
+   If two components are given, it means a relative-fitting or zone-fitting. If the fitting condition is not maximum-fitting, the condition means to make values at two components equal (for AX, BX, GMX, AY, BY, GMY, EX, EPX, EY, EPY, R1, R2, R3, R4, DX, DPX, DY, DPY, PEX, PEPX, PEY, PEPY, CHI1, CHI2, CHI3),  or have the specified difference (for NX, NY, LENG, GX, GY, GZ). If the fitting condition is maximum-fitting, the condition means a zone-fitting (for AX, BX, GMX, AY, BY, GMY, EX, EPX, EY, EPY, R1, R2, R3, R4, DX, DPX, DY, DPY, PEX, PEPX, PEY, PEPY, CHI1, CHI2, CHI3), which suppress the maximum of the function in the region between component1 and component2, or maximum-fitting for the difference of the function (for NX,  NY, LENG, GX, GY, GZ). The fit region is shown in the first part of the prompt when FFSPRMPT is ON.\n\n\
 Examples: (1) FIT QF.2-10\n\n\
 sets the current fit point at  10 components upstream from the entrance of the second QF.\n\n\
           (2) FIT QF QD NX 0.5 BXM 10\n\n\
@@ -490,14 +550,14 @@ then prints out a table of the dependences of various quantities on the frequenc
    EMITTANCE(EMIT) returns the equilibrium emittances in variables EMITX, EMITY, EMITZ, and the equilibrium bunch length in SIGZ, the relative momentum spread in SIGE, and the longitudinal equilibrium position DTSYNCH. \n\n\
    The map used in EMIT is slightly different from that used in the tracking. For instance, the edge angle of a bend is approximated by a thin quad. If the edge angle is large and the curvature is small, EMIT may give a wrong answer. This will be corrected in near future.",
     "multi-turn-tracking extended-Twiss-parameters COD RADCOD RFSW INTRA EMIOUT WSPAC \n\
- CODPLOT TRPT MOMENTUM CHARGE FSHIFT MINCOUP PBUNCH EMITX EMITY EMITZ SIGE SIGZ DTSYNCH Emittance",
+ CODPLOT TRPT MOMENTUM CHARGE FSHIFT MINCOUP PBUNCH EMITX EMITY EMITZ SIGE SIGZ DTSYNCH Emittance equilibrium-beam-envelope",
     {}},
 
    {"multi-turn-tracking",
     "\
 The multi-turn tracking can be done by the TRACK command of the MAIN level, the TRACK command in FFS, or the DynamicApertureSurvey[] function in FFS. The latter only perform the DAPERT mode.\n\n\
    The multi-turn tracking uses the closed orbit, normal coordinate, and the equilibrium emittances. Therefore One of EMITTANCE(EMIT), the Emittance[] function, or the EMIT command in the MAIN level are necessary to be done once in prior to the multi-turn-tracking. The values of EMITX, EMITY, EMITZ, SIGE can be changed between EMITs and the multi-turn-tracking.",
-    "EMITTANCE(EMIT) RFSW RAD FLUC RADCOD SPAC WSPAC special-variables",
+    "EMITTANCE(EMIT) RFSW RAD FLUC RADCOD SPAC WSPAC special-variables equilibrium-beam-envelope",
     {}},
 
    {"machine-error-commands",
@@ -575,7 +635,7 @@ APERT   DX1 DX2 DY1 DY2 DP AX AY DX DY",
 
          {"transformation:DRIFT",
           DRIFT$trans="\
-The transformation of a drift is\n\n"//
+The transformation of a drift is written as\n\n"//
 EquAlign["\\exp(:H:)\\ .",
 "\
    exp(:H:),"]//"\n\n\
@@ -613,14 +673,14 @@ can pass through the aperture, otherwise it is lost and a message is printed out
 Rotation in x-y plane. After displacing the magnet by DX and DY, rotate the magnet around the local s-axis by -(amount given by ROTATE), then place the component. At the exit rotate back the magnet around the local s-axis at the exit, then take out displacement.",
           "DX DY DROTATE",
           {}},
-         
+    
          DROTATE$Message=
          {"DROTATE",
           "\
 Additional rotation in x-y plane to simulate a rotation error. DROTATE does not affect the geometry of the ring.",
           "DX DY ROTATE",
           {}},
-         
+    
          DX$Message=
          {"DX",
           "\
@@ -669,8 +729,8 @@ The absolute face-angle at the exit to the bending angle. The effective face ang
          Kn$Message[n_]:=
          {"K"//n,
           "\
-The normal "//2*(n+1)//"-pole magnetic field component (times the length L).\n\n"//
-EquAlign["{\\tt K"//n//"}=\\frac{B^{("//n//")}{\\tt L}}{B\\rho},",
+The normal "//N$pole[2(n+1)]//" magnetic field component (times the length L).\n\n"//
+EquAlign["{\\tt K"//n//"}=\\frac{B"//N$deriv[n]//"{\\tt L}}{B\\rho},",
 "\
    K"//n//" = B^("//n//")L/(Brho),"]//"\n\n\
 where L is the effective length of the component. Positive sign means horizontal focusing.",
@@ -844,7 +904,7 @@ If K1 is nonzero, the effects from E1 and E2 are approximated by thin\n\
 quadrupoles. Then the body is subdivided into\n\n\
    1 + floor(sqrt(abs(K1 L')/(12 10^-5 EPS)))\n\n\
 pieces (EPS = 1 is used when EPS = 0), and the bend-body transformation above is done for each piece and the kick from K1 is applied alternatively. In FFS optics and Emittance calculations, or when the synchrotron radiation is turned on, the same algorithm as K1 <> 0 is applied.",
-          "coordinates",
+          "coordinates equilibrium-beam-envelope",
           {}}
           }]
          },
@@ -920,7 +980,20 @@ FRINGE=3    entr & exit   entr & exit      none      entr & exit\n\n",
          {"transformation:QUAD",
           QUAD$trans="\
 The transformation in a QUAD is a sequence of:\n\n\
-   (nonlinear fringe at entrance)\n\
+   (nonlinear fringe at entrance)\n"//
+EquAlign["Text[\
+\\begin{align}\
+ G(x_1, p_{x2}, y_1, p_{y2}, p_1) =& H_0(x_1, p_{x2}, y_1, p_{y2}, p_1)\
++\\frac{1}{2}\\left(\\frac{\\partial H_0}{\\partial x_1} \\frac{\\partial H_0}{\\partial p_{x2}} + \\frac{\\partial H_0}{\\partial y_1} \\frac{\\partial H_0}{\\partial p_{y2}}\\right)\\ ,\
+\\end{align}\
+where \n\
+\\begin{align}\
+H_0  &=  p_{x2} \\varDelta x_1 + p_{y2} \\varDelta y_1\\ ,\\\\\
+\\varDelta x_1 &=  x_1 (a/3 + b)\\\\\
+\\varDelta y_1 &= -y_1 (a + b/3)\\\\\
+a&=  {\\tt K1} \\frac{x_1^2}{4p_1}\\\\\
+b&=  {\\tt K1} \\frac{y_1^2}{4 p1}\\ .\
+\\end{align}\\\\;;;6]","\
       canonical transformation by a generating function\n\n\
       G(x1, px2, y1, py2, p1) = H0(x1, px2, y1, py2, p1)\n\
                 + (D[H0, x1] D[H0, px2] + D[H0, y1] D[H0, py2])/2\n\n\
@@ -928,8 +1001,22 @@ The transformation in a QUAD is a sequence of:\n\n\
             dx1 =  x1 (a/3 + b)\n\
             dy1 = -y1 (a + b/3)\n\
             a   =  K1 x1^2/p1/4\n\
-            b   =  K1 y1^2/p1/4 .\n\
-   (linear fringe at entrance)\n\
+            b   =  K1 y1^2/p1/4 ."]//"\n\
+   (linear fringe at entrance)\n"//
+EquAlign["Text[\
+\\begin{align}\
+      p_{x2} &= \\exp(-a) p_{x1}\\ ,\\\\\
+      p_{y2} &= \\exp(\ a)  p_{y1}\\ ,\\\\\
+      x_2  &= \\exp(\ a)x_1 + b p_{x1}\\ ,\\\\\
+      y_2  &= \\exp(-a)y_1 - b p_{y1}\\ ,\\\\\
+      z_2  &= z_1 - (a x_1 + b (1 + a/2) p_{x2}) p_{x1}\
+               + (a y_1 + b (1 - a/2) p_{y2}) p_{y1}\\ ,\
+\\end{align}\
+      where\
+\\begin{align}\
+ a &= -{\\tt K1 F1} \\frac{|{\\tt F1}|}{24 p_1 {\\tt L}}\\ ,\\\\\
+            b &=\\frac{\\tt K1 F2}{\\tt L}\\ .\
+\\end{align};;;7]","\
       px2 = exp(-a) px1\n\
       py2 = exp(a)  py1\n\
       x2  = exp(a)  x1 + b px1\n\
@@ -937,8 +1024,22 @@ The transformation in a QUAD is a sequence of:\n\n\
       z2  = z1 - (a x1 + b (1 + a/2) px2) px1\n\
                + (a y1 + b (1 - a/2) py2) py1\n\
       where a = -K1 F1 abs(F1)/(24 p1 L)\n\
-            b =  K1 F2/L .\n\
-   (body of quad)\n\
+            b =  K1 F2/L ."]//"\n\
+   (body of quad)\n"//
+EquAlign["Text[\
+The body is subdivided into\
+\\begin{align}\
+ n = 1 + {\\tt Floor}\\left[\\frac{10 |{\\tt K1 L}|}{\\tt EPS}\\right]\
+\\end{align}\
+slices. {\\tt EPS} = 1 is used when {\\tt EPS} = 0. Then a transversely linear transformation $\\exp(:H_{2n}:)$ is applied in each slice with\
+\\begin{align}\
+H_{2n} = \\frac{1}{n}\\left\\lbrace\\left(-p + \\frac{p_x^2 + p_y^2}{2 p} + \\frac{E}{v_0}\\right){\\tt L} + \\frac{\\tt K1}{2} (x^2 - y^2)\\right\\rbrace\\ .\
+\\end{align}\\\\\
+Between slices the correction $\\exp(:\\varDelta H:)$ for the kinematical term\
+\\begin{align}\
+\\varDelta H = \\frac{1}{n}\\left(p-\\sqrt{p^2 - p_x^2 -p_y^2} - \\frac{p_x^2 + p_y^2}{2 p}\\right) {\\tt L}\
+\\end{align}\
+is applied. In a solenoid, the forms of $H_{2n}$ and $\\varDelta H$ are modified.\\;;;3]","\
       The body is subdivided in n = 1 + floor(10 abs(K1 L)/EPS) (EPS = 1\n\
       is used when EPS = 0), then a transversely linear transformation\n\
       exp(:H:) is done in each slice with\n\n\
@@ -946,8 +1047,22 @@ The transformation in a QUAD is a sequence of:\n\n\
       Between slices applied is the correction exp(:dH:) for the kinematical\n\
       term with\n\n\
          dH = (-sqrt(p^2 - px^2 -py^2) + p - (px^2 + py^2)/(2 p)) L/n .\n\n\
-      In a solenoid, the forms of H and dH are modified.\n\
-   (linear fringe at exit)\n\
+      In a solenoid, the forms of H and dH are modified."]//"\n\
+   (linear fringe at exit)\n"//
+EquAlign["Text[\
+\\begin{align}\
+      p_{x2} &= \\exp(\ a) p_{x1}\\ ,\\\\\
+      p_{y2} &= \\exp(-a)  p_{y1}\\ ,\\\\\
+      x_2  &= \\exp(-a)x_1 + b p_{x1}\\ ,\\\\\
+      y_2  &= \\exp(\ a)y_1 - b p_{y1}\\ ,\\\\\
+      z_2  &= z_1 + (a x_1 - b (1 - a/2) p_{x2}) p_{x1}\
+               - (a y_1 - b (1 + a/2) p_{y2}) p_{y1}\\ ,\
+\\end{align}\
+      where\
+\\begin{align}\
+ a &= -{\\tt K1 F1} \\frac{|{\\tt F1}|}{24 p_1 {\\tt L}}\\ ,\\\\\
+            b &=\\frac{\\tt K1 F2}{\\tt L}\\ .\
+\\end{align}\\;;;7]","\
       px2 = exp( a)  px1\n\
       py2 = exp(-a) py1\n\
       x2  = exp(-a) x1 + b px1\n\
@@ -955,8 +1070,21 @@ The transformation in a QUAD is a sequence of:\n\n\
       z2  = z1 + (a x1 - b (1 - a/2) px2) px1\n\
                - (a y1 - b (1 + a/2) py2) py1\n\
       where a = -K1 F1 abs(F1)/(24 p1 L)\n\
-            b =  K1 F2/L .\n\
-   (nonlinear fringe at exit)\n\
+            b =  K1 F2/L ."]//"\n\
+   (nonlinear fringe at exit)\n"//
+EquAlign["Text[\
+a canonical transformation by a generating function:\n\
+\\begin{align}\n\
+G(x_1, p_{x2}, y_1, p_{y2}, p_1) = H_0(x_1, p_{x2}, y_1, p_{y2}, p_1) + \\frac{1}{2}\\left(\\frac{\\partial H_0}{\\partial x_1} \\frac{\\partial H_0}{\\partial p_{x2}} + \\frac{\\partial H_0}{\\partial y_1} \\frac{\\partial H_0}{\\partial p_{y2}}\\right)\\ ,\n\
+\\end{align}\n\
+where\n\
+\\begin{align}\n\
+ H_0&= p_{x2} \\varDelta x_1 + p_{y2} \\varDelta y_1\\ ,\\\\\n\
+ \\varDelta x_1 &=  x_1 (a/3 + b)\\ ,\\\\\n\
+ \\varDelta y_1 &= -y_1 (a + b/3)\\ ,\\\\\n\
+ a &= -{\\tt K1} \\frac{x_1^2}{4p_1}\\ ,\\\\\n\
+ b &= -{\\tt K1} \\frac{y_1^2}{4p_1}\\ .\n\
+\\end{align};;;6]","\
       canonical transformation by a generating function\n\n\
       G(x1, px2, y1, py2, p1) = H0(x1, px2, y1, py2, p1)\n\
                 + (D[H0, x1] D[H0, px2] + D[H0, y1] D[H0, py2])/2\n\n\
@@ -964,20 +1092,20 @@ The transformation in a QUAD is a sequence of:\n\n\
             dx1 =  x1 (a/3 + b)\n\
             dy1 = -y1 (a + b/3)\n\
             a   = -K1 x1^2/p1/4\n\
-            b   = -K1 y1^2/p1/4 .",
-        "coordinates",
+            b   = -K1 y1^2/p1/4 ."],
+        "Hamiltonian 2nd-order-Hamiltonian solution-H2 solution-dH",
         {}}
          }]
         },
 
-          SEXT$trans[name_,pole_,n_]:=EquAlign["Text[\
+          SEXT$trans[name_,n_]:=EquAlign["Text[\
 The transformation of a {\\tt "//name//"} is given as\n\
-\\begin{align}\\begin{split}\n\
-   &\\exp(:F_{\\rm in}:)\\exp(:a {\\tt L}:)\\exp(:H_"//n//"/2:)\\exp(:b {\\tt L}:)\\\\\n\
+\\begin{align}\n\
+   &\\exp(:F_{\\rm in}:)\\exp(:a {\\tt L}:)\\exp(:H_"//n//"/2:)\\exp(:b {\\tt L}:)\\nonumber\\\\\n\
    \\times&\\exp(:V_"//n//":)\\exp(:a {\\tt L}:)\\exp(:H_"//n//"/2:)\\exp(:b {\\tt L}:)\\exp(:F_{\\rm out}:)\\  ,\n\
 \\end{split}\\end{align}\n\
 where {\\tt L} and $H_"//n//"$ are the Hamiltonians of a drift of length {\\tt L} and a thin "//
-pole//"pole kick with integrated strength {\\tt K"//n//"}:\n\
+N$pole[2(n+1)]//" kick with integrated strength {\\tt K"//n//"}:\n\
 \\begin{align}\n\
    H_"//n//" = \\frac{{\\tt K"//n//"}}{"//n+1//
 "\!} \\Re(x - i y)^{"//n+1//"}\\ ,\n\
@@ -992,8 +1120,8 @@ where $,i$ represents the derivative by $x$ or $y$. We have also introduced two 
 The transformation of a "//name//" is given as\n\n\
    exp(:Fin:)exp(:a L:)exp(:H"//n//"/2:)exp(:b L:)\n\
          *exp(:V"//n//":)exp(:a L:)exp(:H"//n//"/2:)exp(:b L:)exp(:Fout:) ,\n\n\
-where L and H"//n//" are Hamiltonians of a drift of length L and a thin \n"//
-pole//"pole kick of integrated strength K"//n//":\n\n\
+where L and H"//n//" are Hamiltonians of a drift of length L and a thin "//N$pole[n]
+//" kick of integrated strength K"//n//":\n\n\
    H"//n//
 " = K"//n//"/"//n+1//"! Re((x - I y)^"//n+1//") ,\n\n\
 respectively. The coeffients are a = 1/2 - 1/sqrt(12) and b = 1/2 - a. Terms exp(:Fin:) and exp(:Fout:) are transformations for entrance and exit nonlinear fringes. The term exp(:V"//n//":) is a correction to adjust the third-order terms in L:\n\n\
@@ -1001,9 +1129,9 @@ respectively. The coeffients are a = 1/2 - 1/sqrt(12) and b = 1/2 - a. Terms exp
               - beta/2 (H"//n//",k)^2 \n\
               + gamma (H"//n//",j H"//n//",k H"//n//",j,k)] ,\n\n\
 where ,i represents the derivative by x or y. We have also introduced two coefficients beta = 1/6 - 1/sqrt(48) and gamma = 1/40 - 1/24/sqrt(3)."];
-       SEXT$Message[name_,pole_,n_]:=
+       SEXT$Message[name_,n_]:=
        {name,
-        "A "//pole//"pole magnet.",
+        "A "//N$pole[2(n+1)]//" magnet.",
         "",
         Sort[
         {L$Message,
@@ -1021,17 +1149,17 @@ where ,i represents the derivative by x or y. We have also introduced two coeffi
          DISRAD$Message,
 
          {"transformation:THIN",
-        SEXT$trans[name,pole,n],
+        SEXT$trans[name,n],
         "",
         {}}
          }]
-        };SEXT$Message["SEXT","sextu",2],
+        };SEXT$Message["SEXT",2],
 
-       SEXT$Message["OCT","octa",3],
+       SEXT$Message["OCT",3],
 
-       SEXT$Message["DECA","deca",4],
+       SEXT$Message["DECA",4],
 
-       SEXT$Message["DODECA","dodeca",5],
+       SEXT$Message["DODECA",5],
 
        {"SOL",
         "\
@@ -1054,7 +1182,7 @@ The longitudinal field of a solenoid. If a SOL is used with BOUND = 0 (default),
          {"GEO",
           "\
 One of boundaries (with GEO = 1) of a solenoid must have GEO = 1 to specify the alignment of the design orbit. At a SOL element with GEO = 1, the design orbit is determined by DX, DY, DPX, DPY parameters",
-          "DX DY DPX DPY",
+          "DX DY DPX DPY geometric-functions DISPLAY(DISP) GEOMRTRY(G) OGEOMETRY(OG)",
           {}},
 
          {"DX",
@@ -1088,7 +1216,20 @@ The length of fringe of the solenoid field. It affects only the EMITTANCE calcul
            {}},
 
          {"DISFRIN",
-          "\
+     EquAlign["Text[\
+Disables the nonlinear fringe of solenoid if nonzero. The default is 0. The transformation for the nonlinear fringe is expressed by\n\
+\\begin{align}\n\
+\\exp(:H:)\ ,\\qquad H = -B_z/(8p^2B\\rho) p_\\phi p_r,\
+\\end{align} where\
+\\begin{align}\n\
+   p_\\phi &= xp_y - yp_x\\ ,\\\\\n\
+   p_r   &= xp_x + yp_y\\ ,\n\
+\\end{align} whose canonical partners are\n\
+\\begin{align}\n\
+   \\phi &= {\\tt ArcTan}[y/x]\\ ,\\\\\n\
+   r   &= {\\tt Log}[x^2 + y^2]/2\\ ,\n\
+\\end{align} respectively.\
+;;;5]","\
 Disables the nonlinear fringe of solenoid if nonzero. The default is 0. The transformation for the nonlinear fringe is expressed by\n\n\
    exp(:H:) ,\n\
    H = -Bz/(8 Brho p^2) p_phi p_r, \n\n\
@@ -1098,7 +1239,7 @@ where\n\n\
 whose canonical partners are\n\n\
    phi = ArcTan[y/x] ,\n\
    r   = Log[x^2 + y^2]/2 ,\n\n\
-respectively.",
+respectively."],
           "",
           {}}}]
        },
@@ -1125,7 +1266,7 @@ and if dir is nonzero,\n\n"//EquAlign["\
 \\left(\\begin{matrix} {\\tt DX} \\\\-{\\tt DY} \\\\0\\end{matrix}\\right)\\ ,","\
   {x      { dx    {c3 -s3 0     {1  0   0      {c1 0  s1   {x\n\
    y   =   -dy  +  s3  c3 0      0  c2 -s2      0  1  0     y\n\
-   z}_1     0 }    0   0  1}.    0  s2  c2}.   -s1 0  c1}.  z} ,"]//"\n\n\ 
+   z}_1     0 }    0   0  1}.    0  s2  c2}.   -s1 0  c1}.  z} ,"]//"\n\n\
 where {x, y, z}_1 are the new coordinates and\n\n"//EquAlign["\
 c_{1,2,3}=&\\cos({\\tt CHI1},{\\tt CHI2},{\\tt CHI3})\\ ,\\\\\n\
 s_{1,2,3}=&\\sin({\\tt CHI1},{\\tt CHI2},{\\tt CHI3})\\ .","\
@@ -1234,7 +1375,7 @@ where ts is the equilibrium time determined by the valance between the accelerat
 A magnet with multipoles. Note that the reference plane is defined so that the skew quadrupole component becomes zero.\n\
    It can have a nonzero ANGLE to express a combined function bending magnet with multipoles. Note that the definition of the multipoles with nonzero ANGLE is very special The current version does not allow nonzero ANGLE inside a solenoid or with acceleration. Also the fringe field and emittance calculation are not installed properly for nonzero ANGLE.",
         "multipole_with_nonzero_ANGLE",
-        Sort[
+        ReleaseHold[Sort[
         {L$Message,
 
           ANGLE$Message,
@@ -1282,18 +1423,17 @@ Actually the summation is truncated at n + k <= 21 in the current version. While
          "ANGLE",
          {}},
 
-         Apply[Sequence,Table[Kn$Message[i],{i,0,21}]],
-
          SKn$Message[n_]:=
          {"SK"//n,
           "\
-The skew "//2*(n+1)//"-pole magnetic field component (times the length L).\n"//EquAlign["\
-{\\tt SK"//n//"} = B^{("//n//")}{\\tt L}/(B\\rho)\\ ,","\
+The skew "//N$pole[2(n+1)]//" magnetic field component (times the length L).\n"//EquAlign["\
+{\\tt SK"//n//"} = \\frac{B"//N$deriv[n]//"{\\tt L}}{B\\rho}\\ ,","\
    SK"//n//" = B^("//n//")L/(Brho),"]//"\n\n\
-where L is the length of the component. Positive sign means a horizontally focusing magnet rotated around z-axis by -90/(n+1) degree, i.e., ROTATE = (90/(n+1)) DEG .",
+where L is the length of the component. Positive sign means a horizontally focusing magnet rotated around z-axis by -90/"//n+1//" degree, i.e., ROTATE = "//90/(n+1)//" DEG .",
           "L",
           {}};
-         Apply[Sequence,Table[SKn$Message[i],{i,0,21}]],
+         Hold[Apply[Sequence,
+           Flatten[Table[{Kn$Message[i],SKn$Message[i]},{i,0,21}],1]]],
 
          {"RADIUS",
           "Radius of the vacuum chamber. Effective when SPAC is ON.",
@@ -1344,7 +1484,7 @@ The acceleration is given as \n\n"//Acc$Message//"\n\n\
 where ts is the equilibrium time determined by the valance between the acceleration and the radiation loss around the ring.",
            "",
            {}},
-           
+      
          {"DPHI",
           "\
 Relative phase offset. The stable synchrotron phase above the transition is near PHI = 0. The acceleration is given as \n\n"//Acc$Message//"\n\n\
@@ -1356,7 +1496,7 @@ where ts is the equilibrium time determined by the valance between the accelerat
 
          DISFRINQ$Message,
 
-         DISRAD$Message}]
+         DISRAD$Message}]]
          },
 
        {"MARK",
@@ -1425,7 +1565,7 @@ These formula are not valid when there is x-y coupling or vertical dispersion.",
 
    {"SEED",
     "The SEED command is obsolete. Use SeedRandom[] function instead of SEED.",
-    "MEASURE(MEA) machine-errors FIXSEED MOVESEED SeedRandom",
+    "MEASURE(MEA) FIXSEED MOVESEED SeedRandom",
     {}},
 
    {"VARY",
@@ -1476,6 +1616,7 @@ entrance of the beam line.",
     "\
 Usage: DRAW [begin end] fun1 [fun2..] [& fun11 [fun12..]] [element-pattern]\n\n\
 draws a plot of optical functions in multi columns. It calls OpticsPlot internally. Available functions are all matching-functions (except LENG, TRX, TRY, GX, GY, GZ, CHI1, CHI2, CHI3) and additional functions. If functions are separated by ampersand (&), these are plotted in a separated window.\n\
+  Function name preceded by \"R\" and \"D\" refer the reference optics and the difference, respectively.\n\
   If begin- and end-components are specified, the plot region is limited between them. If the end-component comes earlier than the begin-components, it wraps the plot around the beam line.\n\
   If the optional element-pattern is given, it draws the beam-line lattice with the labels for elements which match element-pattern. If LAT is specified for element-pattern, the lattice is drawn without label.\n\
  A character string assigned to TITLE is shown as the FrameLabel on the top of the plot.\n\n\
@@ -1489,24 +1630,10 @@ draws a plot of optical functions in multi columns. It calls OpticsPlot internal
       {"Draw$Option",
         "\
  Draw$Option is a list of rules to specify Graphics options for the entire DRAW. If you need option for each column, use OpticsPlot",
-        "DRAW OpticsPlot Graphics",
+        "DRAW OpticsPlot Graphics REFERENCE(REF)",
         {}}
 
       }]},
-
-   {"GEO",
-    "\
-prints out the TopDrawer commands for the geometric plot of the beam line.",
-    "DISPLAY(DISP)",
-    {}},
-
-!    {"TDR",
-!     "Usage:   TDR {filename | file_number}\n\n\
-! runs TopDrawer (tdr) using the file specified by filename or file_number as the input. It supports both Tek terminal and X-window.\n\n\
-! Example:   OUT 'a' DRAW bx by & ex ey q* CLOSE OUT TDR 'a'\n\n\
-! TDR does not work when SAD is running under EMACS without X-window.",
-!     "DRAW GEO OUTPUT(OUT) CLOSE(CLO)",
-!     {}},
 
    {"PRINT(PRI)",
     "PRI expression evaluates expression and prints out the result.",
@@ -1594,7 +1721,7 @@ Example:   BX 10 3    (beta_x to be 10 at 3 momenta) \n\
 (5) If the current fit location is at a MARK, @ for the goal value refers the save value at the MARK. @- refers -(save value). These are useful to match between two beam lines.\n\n\
    Available matching-functions are:\n\
 optical-functions (see optical-functions):\n\
-AX BX NX AY BY NY EX EPX EY EPY R1 R2 R3 R4 DETR DX DPX DY DPY DZ DDP PEX PEPX PEY PEPY TRX TRY LENG\n\
+AX BX GMX NX AY BY GMY NY EX EPX EY EPY R1 R2 R3 R4 DETR DX DPX DY DPY DZ DDP PEX PEPX PEY PEPY TRX TRY LENG\n\
 geometric-functions (see geometric-functions):\n\
 GX GY GZ CHI1 CHI2 CHI3",
     "FIT GO SHOW MARK optical-functions geometric-functions off-momentum-matching x-y-coupling REJ special-variables DP functions FitValue MatchingAmplitude",
@@ -1618,9 +1745,11 @@ As this example, the off-momentum points are chosen with equal separation. If th
      "Available optical functions for matching are:\t\n\n\
 AX      alpha_X\n\
 BX      beta_X\n\
+GMX     gamma_X\n\
 NX      psi_X, the default scale is 1/(2Pi)\n\
 AY      alpha_Y\n\
 BY      beta_Y\n\
+GMY     gamma_Y\n\
 NY      psi_Y, the default scale is 1/(2Pi)\n\
 EX      eta_X   (dispersion_X)\n\
 EPX     eta_Px  (dispersion_PX) \n\
@@ -1639,6 +1768,7 @@ DZ      dz\n\
 DDP     delta=dp/p0\n\
 AZ      alpha_Z\n\
 BZ      beta_Z\n\
+GMZ     gamma_Z\n\
 NZ      psi_Z, the default scale is 1/(2Pi)\n\
 ZX      zeta_X  (z-dispersion_X)\n\
 ZPX     zeta_Px (z-dispersion_PX) \n\
@@ -1668,8 +1798,9 @@ The geometrical coordinate {xi, eta, zeta} is set by the ORG command, and its de
    The rotation angles are defined so as to give the local {x,y,s} is written\n\n\
     {x, y, s}_local\n\
    = rotate[s, chi3] rotate[x, chi2] rotate[y, -chi1]{x, y, s}_origin,\n\n\
-where rotate[a, b] reads \"rotate around the new-a vector by b right-handedly\".",
-    "optical-functions matching-function-commands DISPLAY(DISP) GEOCAL GEOFIX",
+where rotate[a, b] reads \"rotate around the new-a vector by b right-handedly.\n\n\
+geometric functions disignate the geometry of the coordinate. If the geometry of orbit is needed, use LINE[\"OGEO\"], etc., or DISP OG.",
+    "optical-functions matching-function-commands DISPLAY(DISP) GEOCAL GEOFIX ORG LINE",
     {}},
 
    {"flags",
@@ -1743,7 +1874,7 @@ RFSW turns on the acceleration by CAVI and TCAVI element in the particle-trackin
 
      {"INTRA",
       "INTRA turns on the calculation of intra-beam scattering in the emittance calculation. Accessible in MAIN level.",
-      "EMITTANCE(EMIT)",
+      "EMITTANCE(EMIT) Emittance equilibrium-beam-envelope",
       {}},
 
      {"TRPT",
@@ -1783,8 +1914,8 @@ Accessible in the MAIN level.",
       {}},
 
      {"IDEAL",
-      "IDEAL or NOREAL inhibits to use the component-specific deviations  (i.e., machine-errors) in the optics calculation.",
-      "REAL CALCULATE(CAL) GO machine-errors",
+      "IDEAL or NOREAL inhibits to use the component-specific deviations in the optics calculation.",
+      "REAL CALCULATE(CAL) GO",
       {}},
 
      {"CODPLOT",
@@ -1793,9 +1924,9 @@ Accessible in the MAIN level.",
       {}},
 
      {"WSPAC",
-      "When on, performs space-charge simulation in a \"strong-weak\" mode. The beam size through the beam line is to be calculated by EMIT with CODPLOT. The space-charge force is calculated assuming Gaussian distribution in all dimensions, and particles/bunch given by PBUNCH. WSPAC is effective in optics and emittance calculations and tracking.\n\ 
+      "When on, performs space-charge simulation in a \"strong-weak\" mode. The beam size through the beam line is to be calculated by EMIT with CODPLOT. The space-charge force is calculated assuming Gaussian distribution in all dimensions, and particles/bunch given by PBUNCH. WSPAC is effective in optics and emittance calculations and tracking.\n\
    Do not confuse WSPAC with SPAC.",
-      "EMITTANCE(EMIT) PBUNCH CODPLOT MINCOUP SELFCOD SPAC",
+      "EMITTANCE(EMIT) PBUNCH CODPLOT MINCOUP SELFCOD SPAC equilibrium-beam-envelope",
        {}},
 
      {"SELFCOD",
@@ -1804,7 +1935,7 @@ Accessible in the MAIN level.",
        {}},
 
      {"PSPAC",
-      "When on, performs space-charge simulation in a \"Particle-In-Cell\" method. PSPAC is effective in tracking only.\n\ 
+      "When on, performs space-charge simulation in a \"Particle-In-Cell\" method. PSPAC is effective in tracking only.\n\
    Do not confuse PSPAC with SPAC/WSPAC.",
       "PSPACNX PSPACNY PSPACNZ PSPACDX PSPACDY PSPACDZ",
        {}},
@@ -1844,7 +1975,7 @@ JITTER or NOQUIET allows jitter of the center-of-mass of the incoming beam in th
       "CONV is a flag set by the CALCULATE(CAL) or GO commands. It becomes True when MatchingResidual is less than CONVERGENCE.",
       "CALCULATE(CAL) GO MatchingResidual CONVERGENCE",
       {}},
-      
+ 
      {"STABLE",
       "STABLE is a flag set by the CALCULATE(CAL) or GO commands in the case of CELL. It becomes True when the closed orbit is found and the optics is stable in both x and y.",
       "CALCULATE(CAL) GO INTRES HALFRES SUMRES DIFFRES",
@@ -1852,8 +1983,8 @@ JITTER or NOQUIET allows jitter of the center-of-mass of the incoming beam in th
 
      {"PHOTONS",
        "\
-When PHOTONS is ON (default is OFF), TrackParticles generates a list of all photons radiated through the tracking. The list is assigned to a symbol PhotonList.",
-       "PhotonList TrackParticles",
+When PHOTONS is ON (default is OFF), with RAD and FLUC, TrackParticles generates a list of all photons radiated through the tracking. The list is assigned to a symbol PhotonList.",
+       "PhotonList TrackParticles RAD FLUC",
        {}},
 
      {"RADLIGHT",
@@ -1957,6 +2088,12 @@ POL turns on spin tracking and the calculation of equilibrium polarization in EM
        "RADPOL EMITTANCE(EMIT) Emittance TrackParticles",
         {}},
 
+      {"LOSSMAP",
+        "\
+If LOSSMAP is on, TrackParticles returns the location and turn where the particle lost is detected, in the 7/9th and 8/10th element of the result, for  NOPOL/POL, respectively. The default is NOLOSSMAP",
+        "TrackParticles POL",
+        {}},
+
       {"RADPOL",
        "\
 If POL is on, RADPOL turns on Sokolov-Ternov effect in tracking.",
@@ -1975,6 +2112,11 @@ When PRSVCASE is on, FFS command line parser preserves the input characters for 
       "CONVCASE",
       {}},
 
+      {"SUS",
+        "If OFF, SUSPEND(SUSP) and END commands have no action. The default is ON.",
+        "SUSPEND(SUSP) END",
+        {}},
+
       Null[]}]},
 
    {"special-variables",
@@ -1990,7 +2132,7 @@ EMITX is a real variable for the horizontal emittance (not normalized by gamma b
 
      {"EMITY",
       "\
-EMITY is a real variable for the vertical emittance (not normalized by gamma beta). It is automatically set by the keyword EMITY of the MARK element at the beginning of the beam line. The EMITTANCE(EMIT) command returns its calculated value in EMITY. The value of EMITY affects the default wei÷ht of variables in the matching. Accessible in MAIN.",
+EMITY is a real variable for the vertical emittance (not normalized by gamma beta). It is automatically set by the keyword EMITY of the MARK element at the beginning of the beam line. The EMITTANCE(EMIT) command returns its calculated value in EMITY. The value of EMITY affects the default weiÃ·ht of variables in the matching. Accessible in MAIN.",
       "EMITX EMITZ SIGZ SIGE DP elements MARK",
       {}},
 
@@ -2115,13 +2257,13 @@ Number of unstable planes in the optics calculations. Equal to zero if all x and
 CHARGE contains the charge of the particle. The default is +1.",
       "",
       {}},
-      
+ 
      {"MASS",
       "\
 MASS is the rest mass of the particle in eV. The default is the electron mass.",
       "",
       {}},
-      
+ 
      {"MOMENTUM",
       "MOMENTUM is the nominal momentum of the beam line at the entrance in eV/c. Accessible in MAIN.",
       "",
@@ -2167,7 +2309,7 @@ ehere Vcacc is the total acceleration voltage at the equilibrium phase PHICAV. T
 The equilibrium RF phase (in radian, = 2 Pi EFFRFFREQ DTSYNCH/c) where the synchrotron radiation loss and acceleration balances. If there are phase, voltage, frequency variations in RF cavities, it is calculated based on \"effective voltage\". Effective with RING only.",
       "EFFVC EFFRFFREQ DTSYNCH CAVI MULT",
       {}},
-      
+ 
      {"SpeedOfLight",
       "SpeedOfLight is 299792458.",
       "",
@@ -2176,7 +2318,7 @@ The equilibrium RF phase (in radian, = 2 Pi EFFRFFREQ DTSYNCH/c) where the synch
      {"PBUNCH",
       "\
 PBUNCH is the number of particles/bunch for the calculation of the intra-beam and space charge effects in EMITTANCE(EMIT), and WakeFunction. Accessible in MAIN.",
-      "EMITTANCE(EMIT) INTRA WSPAC WakeFunction",
+      "EMITTANCE(EMIT) INTRA WSPAC WakeFunction equilibrium-beam-envelope",
       {}},
 
      {"NBUNCH",
@@ -2187,8 +2329,8 @@ NBUNCH is the number of bunches for the calculation of WakeFunction. Accessible 
 
      {"MINCOUP",
       "\
-MINCOUP is the minimum emittance ratio (EMITY/EMITX) to be assumed in the calculation of intrabeam effects in EMITTANCE(EMIT). Accessible in MAIN.",
-      "EMITTANCE(EMIT) INTRA",
+MINCOUP is the minimum emittance ratio to be assumed in the calculation of intrabeam effects in EMITTANCE(EMIT) and Emittance[]. Emittances Max[emit_k, MINCOUP*(emit_x+emit_y)] (k=x,y) are assumed in the intrabeam calculation. Accessible in MAIN.",
+      "EMITTANCE(EMIT) Emittance INTRA equilibrium-beam-envelope",
       {}},
 
      {"LOSSAMPL",
@@ -2244,7 +2386,7 @@ or     InitialOrbits = { {ax1, bx1, nx1, ay1, by1, ny1,\n\
 specifies initial conditions of a number of orbits for the optics calculation by CALCULATE(CAL) and GO. Those coordinates are offset from the central orbit. If six numbers are given, only the offsets of the orbits are affected. If 27 numbers are given, all Twiss parameters are set (values for non-orbit params are used directly. Orbits are giving offsets.)\n\
   If InitialOrbits are given, the off-momentum matching and finite-amplitude matching is disabled.\n\
   InitialOrbits is also necessary to calculate optics with wake field.",
-       "CALCULATE(CAL) GO off-momentum-matching finite-amplitude-matching",
+       "CALCULATE(CAL) GO off-momentum-matching MatchingAmplitude",
       {}},
 
      {"ElementValues",
@@ -2294,12 +2436,13 @@ OpticsEpilog is a variable to assign a user-defined function which is to be exec
       "OpticsProlog",
       {}},
 
+(*
      {"STACKSIZ",
       "\
 STACKSIZ has the size of the stack for SADScript interpreter. It can be set by user at the MAIN level, right before the first FFS session. The default value is 200000.",
       "",
       {}},
-
+*)
       {"$Line",
         "\
  %Line counts the number of the results in FFS Shown with Out[]:= . Out remembers all outputs up to Out[$Line]. $Line = 0 resets the counter and forgets the outputs.",
@@ -2308,7 +2451,7 @@ STACKSIZ has the size of the stack for SADScript interpreter. It can be set by u
 
      {"PhotonList",
        "\
-When PHOTONS is ON (default is OFF), TrackParticles generates a list of all photons radiated through the tracking. The list is assigned to a symbol PhotonList. PhotonList is a list of\n\n\
+When PHOTONS is ON (default is OFF), with RAD and FLUC, TrackParticles generates a list of all photons radiated through the tracking. The list is assigned to a symbol PhotonList. PhotonList is a list of\n\n\
 {en, gx, gy, gz, nx, ny, nz, xi1, xi2, xi3, np, nele}\n\n\
 where\n\n\
 en:    photon energy [eV]\n\
@@ -2327,7 +2470,7 @@ The probability of each polarization is given by each Stokes' parameter as (1+xi
    Remember that the {GX, GY, GZ} = {0, 0, 0} and their directions are {z, -x, -y} at the entrance of the beam line by default. It is changeable by the GEO command anyway.",
        "PHOTONS TrackParticles",
        {}}
-       
+  
     }]},
 
    {"set-value-of-element",
@@ -2336,7 +2479,7 @@ Usage: element-pattern [keyword] [{MIN | MAX | MINMAX | MAXMIN}] value\n\n\
 sets value to the specified keyword of the elements which match element-pattern. If keyword is omitted, the default-keyword is assumed. keyword can be a wildcard to apply all matching keywords.\n\
    If MIN, MAX, MINMAX, MAXMIN are specified, it sets the limit of the default-keyword. Both MINMAX and MAXMIN means MIN=-Abs[value] and MAX=+Abs[value].\n\
    If the keyword is not the default-keyword, it affects both the current and the saved value.",
-    "ATTRIBUTES(ATTR) SAVE elements default-keyword wildcards Element",
+    "ATTRIBUTE(ATTR) SAVE elements default-keyword wildcards Element",
     {KeywordsMessage,
 
      DefaultKeywordMessage}},
@@ -2358,9 +2501,9 @@ means the set-value-of-element command as unless the symbol QF has been defined 
     {"components",
      "\
 Components are the objects which consist the beam line. A component simulates an individual magnet, drift space, or rf-cavity. The parameters of a component is specified the values in the corresponding element with the same name as the component, which simulates a power supply. Many components can be attached to the same element. Parameters of each component may deviate from the corresponding element if machine errors are given.\n\
-   A component is specified with the form name[.order][{+-}offset], where name is the name of the component. The number order means the order-th component which belongs to name element, counted from the beginning of the line starting from 1. Offset is a positive or negative number to specify the downstream or upstream components from the given component. If order is omitted, the first element is assumed, and if offset is omitted, zero is assumed.\n\
+   A component is specified with the form name[.order][{+-}offset], where name is the name of the component. The number order means the order-th component which belongs to name element, counted from the beginning of the line starting from 1. Offset is a positive or negative number to specify the downstream or upstream components from the given component. If order is omitted, the first element is assumed, and if offset is omitted, zero is assumed. The order can be renumbererd by RENUMBER(RENUM).\n\
    The end of line is specified by $$$. The first component can be specified by ^^^.",
-     "elements",
+     "elements RENUMBER(RENUM)",
      {}},
 
     {"expression",
@@ -2639,7 +2782,7 @@ a-- decrements a by 1, returning the old value of a. --a decrements a by 1, retu
 
       {"Part([[]])",
        "\
-a[[b,..]] is a subexpression of an expression a.\n If an index is omitted or Null as a[[,b]], Part returns a list of elements whose corresponding index takes the entire range. For instance,\n {{1, 2}, {3, 4}, {5, 6}}[[,2]] gives {2, 4, 6}.",
+a[[b,..]] is a subexpression of an expression a.\n If an index is omitted or Null like as a[[,b]], Part returns a list of elements whose corresponding index takes the entire range. For instance,\n {{1, 2}, {3, 4}, {5, 6}}[[,2]] gives {2, 4, 6}.",
        "Part",
        {}},
 
@@ -2685,10 +2828,10 @@ expression  matches expression.",
  A function is defined by one of the following forms:\n\n\
 f[pat1 [,pat2...]] (:)= body;\n\
 f[pat1 [,pat2...]] ^(:)= body;\n\
-g//:f[pat1 [,pat2...]] (:)= body;\n\n\
+g/:f[pat1 [,pat2...]] (:)= body;\n\n\
 where pat1 [,pat2...] are patterns (including expressions).\n\
  If UpSet(^=) or UpSetDelayed (^:=) is used, the definition is associated with the symbol in the first level of l.h.s.\n\
- If TagSet(//:) is used, the definition is associated with the symbol on the left of //: .\n\n\
+ If TagSet(/:) is used, the definition is associated with the symbol on the left of /: .\n\n\
  The patters can be an expression including constants. The definition with constant arguments can be accessed faster than searching a list, in general, so they are suitable for a data base. Definitions with constant arguments have higher priorities than with patterns.",
     "UpSet UpSetDelayed TagSet pattern",
     {}},
@@ -2700,7 +2843,7 @@ where pat1 [,pat2...] are patterns (including expressions).\n\
 \\r     carriage return\n\
 \\t     tab\n\
 \\\"     double quote\n\
-\\      backslash\n\
+\\\\     backslash\n\
 \\nnn   a character whose octal code is nnn.\n\n\
  If a character-string is written over multiple lines, \\ must be placed at the end of each line.\n\
  The length of a character-string is limited to 2^31-1.",
@@ -2817,19 +2960,38 @@ EulerGamma     0.57721566490153286061",
     {}},
 
    {"physical-constants",
-     "\
+     EquAlign["Text[\
+Physical constants available in FFS are:\n\
+\\begin{align*}\n\
+{\\tt SpeedOfLight} &\\qquad c\\equiv 299792458 {\\rm\\ m/s}\\\\\n\
+{\\tt PlanckConstant} &\\qquad h \\equiv 6.62607015\\times 10^{-34} {\\rm\\ Js}\\\\\n\
+{\\tt PlanckHbar} &\\qquad \\hbar\\equiv h/(2\\pi)\\\\\n\
+{\\tt ElectronCharge} &\\qquad  e_e \\equiv 1.602176634\\times 10^{-19} {\\rm\\ C}\\\\\n\
+{\\tt FineStructureConstant}&\\qquad  \\alpha = 1/137.035999084 \\\\\n\
+{\\tt ElectronMass}&\\qquad  m_e = 0.51099895000\\times 10^6 {\\rm\\ eV}\\\\\n\
+{\\tt ElectronRadius}&\\qquad  {\\rm classical\\ radius\\ of\\ electron\\ in\\ m,} r_e \\equiv \\alpha \\hbar c / (e_e m_e)\\\\\n\
+{\\tt ProtonMass}&\\qquad  m_p  = 938.27208816\\times 10^6 {\\rm\\ eV}\\\\\n\
+{\\tt ProtonRadius}&\\qquad  {\\rm classical\\ radius\\ of\\ proton\\ in\\ m}\\\\\n\
+{\\tt SIMu0}&\\qquad \\mu_0\\equiv 2\\alpha h/(c e_e^2)\\\\\n\
+{\\tt SIEpsilon0}&\\qquad    \\varepsilon_0\\equiv 1/(\\mu_0 c^2)\\\\\n\
+{\\tt ElectronGminus2over2}&\\qquad   (g-2)/2 {\\rm\\ of\\ electron} = 0.001159652181280002\\\\\n\
+{\\tt BoltzmannConstant}&\\qquad   1.380649\\times 10^{-23} {\\rm\\ J/K .}\n\
+\\end{align*}\
+;;;0]","\
 Physical constants available in FFS are:\n\n\
-SpeedOfLight           299792458\n\
-FineStructureConstant  alpha\n\
-ElectronCharge         e in Coulomb\n\
-ElectronMass           m_e in eV\n\
-ElectronRadius         classical radius of electron, in m\n\
-ElectronGminus2        electron g-2\n\
-ProtonMass             m_p in eV\n\
+SpeedOfLight           c = 299792458 m/s\n\
+PlanckConstant         h = 6.62607015d-34 Js\n\
+PlanckHbar             hbar = h/2/Pi\n\
+ElectronCharge         e_e = 1.602176634d-19 C\n\
+FineStructureConstant  alpha = 1.d0 / 137.035999084d0\n\
+ElectronMass           m_e in eV = 0.51099895000d6\n\
+ElectronRadius         classical radius of electron = alpha hbar c / (e_e m_e), in m\n\
+ProtonMass             m_p in eV = 938.27208816d6\n\
 ProtonRadius           classical radius of Proton, in m\n\
-SIMu0                  4 Pi 10^{-7}\n\
-SIEpsilon0             1/SIMu0/SpeedOfLight^2\n\
-BoltzmannConstant      k_B in J/K",
+SIMu0                  2 alpha h / e_e^2 / c\n\
+SIEpsilon0             1/SIMu0/c^2\n\
+ElectronGminus2over2   (g-2)/2 of electrons = 0.001159652181280002\n\
+BoltzmannConstant      1.380649d-23 J/K"],
      "constants expression special-variables",
      {}},
 
@@ -2911,7 +3073,7 @@ System Interface:\n\
    Directory Environment GetEnv* GetGID* GetPID* GetUID* ProcessStatus* \n\
    SetDirectory SetEnv* System* TemporaryName* MkSecureTemp* RealPath*\n\
 Multiprocessing:\n\
-   BiPipe* Fork* OpenShared* Shared* Wait*\n\ 
+   BiPipe* Fork* OpenShared* Shared* Wait*\n\
 Utilities:\n\
    Date DateString* Definition* FromDate* ToDate ToDateString* Pause\n\
    MemoryCheck* Message Off On Sleep TimeUsed Timing TracePrint\n\n\
@@ -3159,7 +3321,7 @@ which is equivalent to MapThread without returning the results.",
  Thread is equivalent to Transpose if l is a matrix.",
           "MapThread Transpose",
           {}}
- 
+
         }]},
 
      {"Input/Output",
@@ -3203,7 +3365,7 @@ opens a character string for read and returns the file number (_Real)",
          {"Read",
            "\
 Read[f, item [, item1...] [, opts..]]\n\n\
-reads item from file number f. item can be one of or a list of:\n\
+reads item from file number f. If f is $Input, it reads from the current input stream. item can be one of or a list of:\n\
 Word        a word, delimited by WordSeparators\n\
 Real        a real expression\n\
 Expression  an expression\n\
@@ -3211,9 +3373,10 @@ Character   a single character\n\n\
  A format n*item is possible with a positive integer n.\n\
  A list {item1,.., itemn} is possible. The result is also a list.\n\n\
  opts are options given by a Rule:\n\
-Option         Value       Default        Effect\n\
-WordSeparator  _String     \" ,\\t\"\n\   the delimiters for Word\n\
-ReadNewRecord  True/False  True           If true, read the next record of the file beyond the end of line",
+Option         Value       Default    Effect\n\
+WordSeparator  _String     \" ,\\t\"     the delimiters for Word\n\
+ReadNewRecord  True/False  True       If true, read the next record of the file beyond the end of line\n\
+NullWords      True/False  False      If True, \"\" is returned when the input contains adjavent word separators",
            "OpenRead Close",
            {}},
 
@@ -3249,7 +3412,7 @@ converts expr1... to _String then write them to $Output. A newline character is 
 $Output holds the file number for console output. The default is -1.",
            "$Input",
            {}},
-           
+   
          {"$Input",
            "\
 $Input holds the file number for console input stream. The default is -1.",
@@ -3267,7 +3430,7 @@ where w is the width of the output, and f is the length of the fractions. If S i
    The default is S17.15 .",
            "",
            {}},
-         
+
          {"PageWidth",
            "\
 PageWidth is the number of columns of the output. The default is set from GetEnv[\"WIDTH\"].",
@@ -3718,7 +3881,8 @@ FillColor       color                           Colors to fill columns\n\
                 list of colors\n\
 MeshStyle       bitmap                          Bitmap to fill columns\n\
                 list of bitmaps                 to distinguish stacking\n\
-TextSize        positive number 1               relative label size\n\n\
+TextSize        positive number 1               relative label size\n\
+PlotNull        True or False   False           plot a minimal rect for 0 occurrence\n\n\
 Example:\n\
   g=ColumnPlot[{{{1,1,2},{2,2,3}}, {{1,4,2},{2,2,3}}, {{1,3,2},{2,2,3}}}, Orientation->Horizontal];\n\
   Update[];\n\n\
@@ -3845,7 +4009,7 @@ Usage: OpticsPlot[fun_list, options]\n\n\
 makes a plot of built-in optical functions, user-defined functions, or\n\
 list of data at components on the beam line.   The parameters are:\t\n\n\
 fun_list: a list of objects to be plotted in a window. The number of windows in a plot is the length of fun_list object plotted in a window MUST have same dimensions. An element of fun_list is one of fun_label, fun, list_data or a list as {object, options}, where\n\
-fun_label: one of \"AX\", \"BX\", \"NX\", \"EX\", \"EPX\", \"DX\", \"DPX\", \"AY\", \"BY\", \"NY\", \"EY\", \"EPY\", \"DY\", \"DPY\", \"R1\", \"R2\", \"R3\", \"R4\", \"DETR\", \"AZ\", \"BZ\", \"NZ\", \"ZX\", \"ZPX\", \"ZY\", \"ZPY\", \"DZ\",\"DDP\",\"PEX\", \"PEPX\", \"PEY\", \"PEPY\", \"GAMMA\", \"GAMMABETA\",\"SIGab\", where a and b in \"SIGab\" are one of X, PX, Y, PY, Z, DP.\n\
+fun_label: one of \"AX\", \"BX\", \"GMX\", \"NX\", \"EX\", \"EPX\", \"DX\", \"DPX\", \"AY\", \"BY\", \"GMY\", \"NY\", \"EY\", \"EPY\", \"DY\", \"DPY\", \"R1\", \"R2\", \"R3\", \"R4\", \"DETR\", \"AZ\", \"BZ\", \"GMZ\", \"NZ\", \"ZX\", \"ZPX\", \"ZY\", \"ZPY\", \"DZ\",\"DDP\",\"PEX\", \"PEPX\", \"PEY\", \"PEPY\", \"GAMMA\", \"GAMMABETA\",\"SIGab\", where a and b in \"SIGab\" are one of X, PX, Y, PY, Z, DP. \"R\"//fun_label refers the reference optics. \"D\"//fun_label refers the difference between the current and reference optics.\n\
             fun: Any function of the component number.   A fractional number may be used to obtain the intermediate value.\n\
             list_data: a list of {{pos1, val1}..{posn,valn}}.\t\n\n\
 options       defaults\n\
@@ -3877,7 +4041,7 @@ Example:\n\
    p2=OpticsPlot[{{\"BX\",\"BY\"}, {\"DX\",{{{10,0.001},{20,0.002}}, FrameLabel->\"DX meas.\", Unit->Meter, Thickness->2, Names->\"Q*\"}}}];\n\
    Update[];\n\n\
 <OpticsPlot.png",
-         "Graphics ListPlot",
+         "Graphics ListPlot Twiss reference-optics",
          {}},
 
         {"FitPlot",
@@ -4088,7 +4252,7 @@ The key-string is not case-sensitive. Available key-strings are:\t\n\n\
 \"S\"            The orbit length to the entrance from the beginning of the beam line.\n\
 \"LENG\"         Same as \"S\".\n\
 \"GEO\"          Geometric-functions at the entrance of the component, {{GX, GY, GZ}, {GCHI1, GCHI2, GCHI3}}.\n\
-\"OGEO\"          Geometric-functions of the orbit at the entrance of the component, {{OGX, OGY, OGZ}, {OCHI1, OCHI2, OCHI3}}.\n\
+\"OGEO\"         Geometric-functions of the orbit at the entrance of the component, {{OGX, OGY, OGZ}, {OCHI1, OCHI2, OCHI3}}.\n\
 \"GAMMA\"        Lorentz factor gamma.\n\
 \"GAMMABETA\"    Lorentz factor gamma*beta = Sqrt[gamma^2 - 1].\n\
 \"SIGab\"        Beam matrix component, where a and b are one of X, PX, Y, PY, Z, DP. If b is omitted it returns Sqrt[SIGaa] is returned. Just \"SIG\" returns the entire 6 by 6 beam matrix.\n\
@@ -4096,9 +4260,9 @@ The key-string is not case-sensitive. Available key-strings are:\t\n\n\
 \"MULT\"         The ordered number of each component belonging to the- same element, starting from 1.\n\
 keyword        The value of the keyword of the component (see below).\n\
 \"EXPAND\"       Distribute the value of the default-keywords and the keywords used in the matching to all components in the beam line. No second argument.\t\n\
-\"GX\", \"GY\", \"GZ\"  Geometric functions GX, GY, GZ.\n\
-\"GCHI1\", \"GCHI2\", \"GCHI3\"  Geometric functions CHI1, CHI2, CHI3\n\
-\"OGX\", \"OGY\", \"OGZ\", \"OCHI1\", \"OCHI2\", \"OCHI3\"  Geometrical functions at the orbit.\n\
+\"GX\", \"GY\", \"GZ\"  Geometric functions for the coordinate GX, GY, GZ.\n\
+\"GCHI1\", \"GCHI2\", \"GCHI3\"  Geometric functions for the coordinate CHI1, CHI2, CHI3\n\
+\"OGX\", \"OGY\", \"OGZ\", \"OCHI1\", \"OCHI2\", \"OCHI3\"  Geometrical functions for the orbit.\n\
  Setting by LINE[keyword,..] to the DEFAULT keyword for the FIRST component changes the current value of the corresponding element, because the value of an element is stored in the first component.",
           "components geometric-functions elements keywords default-keyword Element",
           {}}}},
@@ -4108,12 +4272,12 @@ keyword        The value of the keyword of the component (see below).\n\
  Twiss[optical-function, component] returns the value of the optical-function at the entrance of component. The values are those calculated by the last CALCULATE(CALC) or GO commands, or CalculateOptics function.\n\
  The second argument, component can be a name of component, a component number, or a list of them. If the number has a fraction, the intermediate value in the component is calculated.\n\
  Twiss[\"ALL\",component] or Twiss[\"*\",component] returns all 28 optical-functions at the entrance of component as a list:\n\n\
-{AX, BX, NX, AY, BY, NY, EX, EPX, EY, EPY, R1, R2, R3, R4, DETR, DX, DPX, DY, DPY, DZ, DDP, AZ, BZ, NZ, ZX, ZPX, ZY, ZPY},\n\n\
-which can be directly used in CalculateOptics. In the current version, however, parameters after AZ are uninteresting, because it always returns 1 for BZ and zeros for the others.\n\
+{AX, BX, GMX, NX, AY, BY, GMY, NY, EX, EPX, EY, EPY, R1, R2, R3, R4, DETR, DX, DPX, DY, DPY, DZ, DDP, AZ, BZ, GMZ, NZ, ZX, ZPX, ZY, ZPY},\n\n\
+which can be directly used in CalculateOptics. In the current version, however, parameters after AZ are uninteresting, because it always returns 1 for BZ and zeros for the others. \"R\"//optical-function refers the reference optics. \"D\"//optical-function refers the difference between the current and the referece optics. \"RALL\" and \"DAL\" mean the all optical functions for the reference optics and the differences, respectively.\n\
    Keywords \"PEX\", \"PEPX\", \"PEY\", \"PEPY\", \"PZX\", \"PZPX\", \"PZY\", \"PZPY\" return dispersions in the physical coordinate.\n\
    Keywords \"LENGTH\", \"GAMMA\", \"GAMMABETA\", \"S\", \"SIGab\" return the same results as for the function LINE.\n\
    The units of NX, NY, NZ are in radian.",
-        "optical-functions extended-Twiss-parameters CalculateOptics LINE",
+        "DRAW optical-functions extended-Twiss-parameters CalculateOptics LINE reference-optics",
           {}},
 
        {"FitValue",
@@ -4178,9 +4342,10 @@ makes the weight of LENG at $$$ 10 times (100 times in MatchingResidual) bigger 
         "\
 Emittance[option] returns a set of rules as \n\n\
    {keyword1->value1, keyword2->value2, ..} .\n\n\
-Its options and default values are Matrix(False), Orbit(False), OneTurnInformation(False), Emittance(True), ExpandElementValues(True), SaveEMIT(False), InitialOrbit(Null), InitialBeamMatrix(Null), and Output(0).\n\n\
+Its options and default values are Matrix(False), Orbit(False), OneTurnInformation(False), Emittance(True), ExpandElementValues(True), SaveEMIT(False), InitialOrbit(Null), InitialBeamMatrix(Null), Region({1,-1}), and Output(0).\n\n\
 If Emittance->False is specified, the resulting keywords are:\t\n\n\
 Stable                  True if all modes are stable and the closed orbit is found.\n\
+Region                  The region {begin, end} to calculate.\n\
 Tunes                   {nux, nuy, nuz} .\n\
 EnergyLossU0            One turn energy loss in eV.\n\
 RfVoltageVc             The effective RF voltage (V).\n\
@@ -4192,9 +4357,9 @@ HarmonicNumber          The effective harmonic number\n\
 OrbitAtExit             physical c.o.d. at the end of line.\t\n\n\
 If None of the options is given, the following keywords are added:\t\n\n\
 DampingRate             {T0/taux, T0/tauy, T0/tauz}\n\
-Emittances              {emitx, emity, emitz}\n\
+Emittances              {emitx, emity, emitz} *1)\n\
 MomentumSpread          sigma p/p0\n\
-BunchLength             sigma_z\n\ 
+BunchLength             sigma_z\n\
 Polarization            equilibrium polarization, if POL is on\n\
 Polarization2           equilibrium polarization by up to 2nd order calculation\n\
 Polarization4           equilibrium polarization by up to 4th order calculation\n\
@@ -4208,7 +4373,7 @@ OrbitAtEntrance         physical c.o.d. at the entrance of the ring.\n\
 OneTurnTransferMatrix   symplectic part of the one-turn transfer matrix.\n\
 OneTurnDampingMatrix    deviation of transfer matrix due to radiation.\n\
 NormalCoordinates       conversion matrix from physical to normal coords.\n\
-OneTurnExcitation       excitation matrix by radiation.\n\
+OneTurnExcitation       excitation matrix by radiation and intrabeam scattering (with INTRA).\n\
 EquilibriumBeamMatrix   equilibrium beam matrix.\n\
 ExtendedTwissParameters list of rules giving the extended Twiss parameters at the entrance of the ring.\t\n\n\
 If Orbit->True or Matrix->True, the following is added:\t\n\n\
@@ -4219,8 +4384,10 @@ IntrabeamExcitation     List of the change of the 6 x 6 beam matrix due to the i
    If the flag TRPT or NORING is set, the calculation assumes a transport line so that several quantities such as damping rate, eigen modes, equilibrium beam matrix, etc. are meaningless. Use RING or NOTRPT for such calculation. In the case of TRPT or NORING, the incoming beam envelope must be given by the option InitialBeamMatrix with a 6 x 6 symmetric matrix. TRPT is useful for calculation of space charge and intrabeam in a transport line.\n\
    Please do not forget to put semicolon at the end of Emittance[] function, otherwise the output will be huge especially when Orbit or Matrix is True.\n If ExpandElementValues->False, calculation is made using the present values of each component (i.e., including machine errors).\n\n\
 If SaveEMIT->True, the calculated values of emittances are stored in variables EMITX, EMITY, EMITZ, SIGE, SIGZ. The default is SaveEMIT->False.\n\n\
-InitialOrbit->{x0,px0,y0,py0,z0,dp0/p0} specifies the incoming orbit which is valid when NOCOD is set. The option Output->filenum enables the print out of EMITTANCE(EMIT) to filnum.",
-        "EMITTANCE(EMIT) SymplecticJ COD EMITX EMITY EMITZ SIGZ SIGE POL",
+InitialOrbit->{x0,px0,y0,py0,z0,dp0/p0} specifies the incoming orbit which is valid when NOCOD is set. The option Output->filenum enables the print out of EMITTANCE(EMIT) to filnum.\n\n\
+If Region is not the entire ring, parameters such as Emittances and DampingRate, etc., are not calculated, and return NaNs.\n\n\
+*1) The values of Emittances with INTRA and MINCOUP correspond to the equilibrium with intrabeam scattering weakened by MINCOUP.",
+        "EMITTANCE(EMIT) SymplecticJ COD EMITX EMITY EMITZ SIGZ SIGE POL MINCOUP equilibrium-beam-envelope",
         {}},
 
        {"TrackParticles",
@@ -4236,8 +4403,9 @@ where location is the position-number of the starting point. If location is same
 in this order. The {7, i} is the flag which is True(==1) when the particle is alive, and False(==0) when lost.\n\n\
    If the flag POL is on, TrackParticles performs spin tracking. Then the coordinates has two more components sy and phis, which correspond to the y-component of the classical spin vector and the angle ArcTan[sx, sz], respectively. If POL is on, another flag RADPOL turns on the Sokolov-Ternov effect.\n\n\
    When a flag RADLIGHT is on, TrackParticles returns the trajectories of particles which are used to calculate the radiation fields. See RadiationField and RadiationSpectrum.\n\n\
-When PHOTONS is ON (default is OFF), TrackParticles generates a list of all photons radiated through the tracking. The list is assigned to a symbol PhotonList.",
-        "components LINE PHOTONS PhotonList RADLIGHT TouschekLifetime WakeFunction SurvivedParticles POL RADPOL",
+When PHOTONS is ON (default is OFF), TrackParticles generates a list of all photons radiated through the tracking. The list is assigned to a symbol PhotonList.\n\n\
+When LOSSMAP is ON (default is OFF), TrackParticles returns the component and the turn where the loss of each particle is detected.",
+        "components LINE PHOTONS PhotonList RADLIGHT TouschekLifetime WakeFunction SurvivedParticles LOSSMAP POL RADPOL",
         {}},
 
        {"SurvivedParticles",
@@ -4255,8 +4423,18 @@ returns the list of 6 coordinates and the flag of the survived particles in x. T
    TouschekLifetime[Infinity, ny, nz]: Touschek lifetime in seconds\n\
      with acceptance 2Jy/(ny * (EMITX+EMITY)) + 2Jz/(nz * EMITZ) < 1.\n\n\
 EMIT or Emittance[] with INTRA must precede TouschekLifetime.",
-         "EMITTANCE(EMIT) Emittance INTRA",
+         "EMITTANCE(EMIT) Emittance INTRA MINCOUP equilibrium-beam-envelope",
          {}},
+
+       {"GaussianCoulomb",
+         EquAlign["Text[\
+{\\tt GaussianCoulomb[x, y, sigx, sigy]} returns the electromagnetic force $f_x+if_y$ at the coordinates $(x,y)$, generated by a Gaussian bunch with sizes {\\tt (sigx,sigy)}=$(\\sigma_x,\\sigma_y)$. Its derivative at the origin is\n\
+\\begin{align} \
+\\frac{\\partial f_x}{\\partial x}&=-2 \\frac{x}{\\sigma_x(\\sigma_x+\\sigma_y)}\\ ,\\\\\
+\\frac{\\partial f_y}{\\partial y}&=-2 \\frac{y}{\\sigma_y(\\sigma_x+\\sigma_y)}\\ .\
+\\end{align}\
+;;;12]",""],
+         "",{}},
 
        {"SynchroBetaEmittance",
         "\
@@ -4271,7 +4449,7 @@ where nus, emitx, emity, emitxp, emityp, conv are the synchrotron tune, equilibr
 Options               Type        Default     Meaning\n\
 -----------------------------------------------------------\n\
 AzimuthalModes        Real        9           Number of azimuthal modes",
-         "SYNCHTOBETA(SYNCHROB)",
+         "SYNCHTOBETA(SYNCHROB) equilibrium-beam-envelope",
          {}},
 
        {"AccelerateParticles",
@@ -4389,7 +4567,7 @@ options: Output->lfn : output to the unit lfn (see OpenWrite).\n\
 where score = Sum[scorei,{i,n}], scorei is the \"score\" of i-th momentum, and turni_j is the lost turn of the particle with i-th momentum and j-th initial amplitude.\n\
    DynamicApertureSurvey tracks number of particles with different initial conditions in the range given by range. It outputs a z-x diagram of the dynamic aperture of the ring. Fifty one initial conditions are chosen in the range x-range for each point of z-range. The initial y-amplitude is linearly dependent on the x-amplitude. It tracks from xmax to downward for each z-amplitude zn, until the particles turns nturn with successive DAPWIDTH x-amplitudes. The default DAPWIDTH is 7.\n\
   DynamicApertureSurvey does parallel processing up to NPARA processes.",
-        "NPARA DAPWIDTH",
+        "NPARA DAPWIDTH EMITTANCE(EMIT) Emittance",
         {}},
 
        {"BeamMatrix",
@@ -4400,8 +4578,13 @@ BeamMatrix[i] returns a 6 by 6 beam-matrix (i.e., <x_k x_l>) at location i. The 
 
        {"SymplecticJ",
         "\
-SymplecticJ[n] returns a n by n symplectic matrix like\n\n\
-   {{0, 1, ...}, {-1, 0, ...}, {0, 0, 0, 1, ...}, {0, 0, -1, 0, ...}, ...} .",
+SymplecticJ[n] returns an n by n symplectic matrix:\n\n"//
+EquAlign["\
+\\left(\\begin{matrix}\
+\\begin{matrix}.&1&.&.\\\\-1&.&.&.\\\\.&.&.&1\\\\.&.&-1&.\\end{matrix}& ...\\\\\
+...&...\\end{matrix}\
+\\right)\ .","\
+   {{0, 1, ...}, {-1, 0, ...}, {0, 0, 0, 1, ...}, {0, 0, -1, 0, ...}, ...} ."],
         "",
         {}},
 
@@ -4470,7 +4653,8 @@ The action[Eq. \\(\\eqref{eq:action}\\)] in $t$ is expressed by\n\
 S=&\\int L_tcdt\\ ,\\label{eq:action}\\\\\n\
 L_t=&-\\frac{mc}{p_0}\\sqrt{1-\\dot x^2+\\dot y^2+(1+x/\\rho)^2\\dot s^2}+a_x\\dot x+a_y\\dot y+(1+x/\\rho)a_s\\dot s\\ ,\\label{eq:Lagrangian}\n\
 \\end{align}\n\
-where $p_0$ and $(a_x,a_y,a_z)=e(A_x,A_y,A_z)/p_0$ are the design momentum and the normalized vector potentials, respectively, and $\\dot\\ $ denotes the derivative by $ct$. Currently SAD dose not handle the electrostatic potential.\\\\\n\
+where $p_0$ and $(a_x,a_y,a_z)=e(A_x,A_y,A_z)/p_0$ are the design momentum and the normalized vector potentials, respectively, and $\\dot\\ $ denotes the derivative by $ct$. SAD's coordinate only has the radius of curvature $\\rho$ in the local $x$-$s$ plane. Note that $\\rho$ is the curvature of the coordinate system, not that of the orbit. The transverse vector potentials $(a_x,a_y)$ are non-zero only in the solenoid region, where $1/\\rho$ is zero.\\\\\n\
+Currently SAD does not handle the electrostatic potential.\\\\\n\
 As SAD uses $s$ for the independent variable instead of $t$, the Lagrangean $L$ for $s$ is written as\n\
 \\begin{align}\n\
 L=&L_t\\frac{dct}{ds}\\ ,\\\\\n\
@@ -4506,34 +4690,135 @@ $E=\\sqrt{m^2c^4+p_0^2p^2}$ the energy of the particle, and $v_0=1/t_0'(s)$ the 
 \\begin{align}\
 z=&-v\\left(t-t_0(s)\\right)\\ ,\
 \\end{align}\n\
-where $v$ is the total velocity of the particle. Note that $v>0$ for the head of a bunch.\n\n\
+where $v$ is the total velocity of the particle. Note that $z>0$ for the head of a bunch.\n\n\
 Thus the canonical variables in SAD are:\n\
 \\begin{align}\n\
 (x,p_x,y,p_y,z,\\delta\\equiv p-1)\\ .\n\
 \\end{align}\
 ;;;12]",""],
       "Lagrangean independent-variable",
-      {}},
+      {{"2nd-order-Hamiltonian",
+EquAlign["Text[\
+The Hamiltonian $H$ can be expanded up to the second order of the transverse coordinates as:\n\
+\\begin{align}\n\
+H&=H_2+\\varDelta H\\ ,\\\\\n\
+H_2&=-\\left(p-\\frac{(p_x-a_{x1})^2}{2p}-\\frac{(p_y-a_{y1})^2}{2p}+a_{s2}\\right)\\left(1+\\frac{x}{\\rho}\\right)+\\frac{E}{p_0v_0}\\ ,\n\
+\\end{align}\n\
+where $a_{x1}$ and $a_{y1}$ are the transverse vector potentials up to the first order, and $a_{s2}$ longitudinal one up to the second order of $x$ and $y$, respectively. Note that $a_{x,y}=0$ where $1/\\rho\\ne0$. Thus $H_2$ represents up to quadrupole fields overlapped with a uniform solenoid. It is known that $H_2$ has an {\\it analytic solution}, if $a_{s2}$ is time-independent. Unless $H$ itself is solvable, SAD uses such an analytic solution of $H_2$, then apply the residual $\\varDelta H$ by slicing.;;;2]",""],
+      "Hamiltonian remarks-on-dynamics",
+        {{"solution-H2",
+EquAlign["Text[\
+We assume the focusing is uniform and $K=B'/(B\\rho)>0$, which can be always obtained by an appropriate rotation in the $x$-$y$ plane. For a uniform longitudinal field $B_z=B/(B\\rho)$ with the length of the section $\\ell$, the solution of $H_2$ for $1/\\rho =0$ is written as:\
+\\begin{align}\
+            x &= x_0 + \\varDelta x\\ ,\\\\\
+p_x &= p_{x0} + p u_2 + B_z\\left(v_2  - \\frac{\\varDelta y}{2}\\right)\\ ,\\\\\
+y &= y_0 + \\varDelta y\\ ,\\\\\
+p_y &= p_{y0} + p w_+ v_1 + B_z \\left(-\\frac{u_1}{w_+}+\\frac{\\varDelta x}{2}\\right)\\ ,\
+\\end{align}\
+where\
+\\begin{align}\
+\\varDelta x &= \\frac{u_1}{w_1} + \\frac{v_1 Bz}{pw_2}\\ ,\\\\\
+\\varDelta y &= \\frac{u_2B_z}{pw_1w_+}+\\frac{w_+v_2}{w_2}\\ ,\\\\\
+           u_1&= a w_1(\\cos\\phi_1-1)+b\\sin\\phi_1\\ ,\\\\\
+           u_2&=-aw_1\\sin\\phi_1 +b(\\cos\\phi_1-1)\\ ,\\\\\
+            v_1&= cw_2(\\cosh\\phi_2-1)+d\\sinh\\phi_2\\ ,\\\\\
+            v_2&= cw_2 \\sinh\\phi_2 +d(\\cosh\\phi_2-1)\\ ,\
+\\end{align}\
+with\
+\\begin{align}\
+            a&=  U\\times\\left(w_2 w_+x_0-\\frac{B_z}{p^2}p_{ym}\\right)\\ ,\\\\\
+            b&= \\frac{w_1U}{p}\\times (w_+p_{xm}-B_z w_2 y_0)\\ ,\\\\\
+            c&=  \\frac{U}{p}\\times\\left(\\frac{w_1 B_z}{w_+}x_0 +p_{ym}\\right)\\ ,\\\\\
+            d&= U\\times w_2\\left(-\\frac{B_z}{p^2w_+} p_{xm}+w_1y_0\\right)\\ ,\\\\\
+            p_{xm}&=p_{x0}+\\frac{B_z}{2}y_0\\ ,\\\\\
+            p_{ym}&=p_{y0}-\\frac{B_z}{2}x_0\\ .\
+\\end{align}\
+The parameters are:\
+\\begin{align}\
+          \\phi_1&=w_1\\ell\\ ,\\\\\
+          \\phi_2&=w_2\\ell\\ ,\\\\\
+          w_1&=\\sqrt{\\frac{(B_z/p)^2+V}{2}}\\ ,\\\\\
+          w_2&=\\frac{K}{pw_1}\\ ,\\\\\
+          w_+&=w_1+w_2\\ ,\\\\\
+           U&=\\frac{1}{V}\\ ,\\\\\
+          V&=\\sqrt{(B_z/p)^4+4(K/p)^2}=w_1^2+w_2^2\\ .\
+\\end{align}\
+The subscript 0 above denotes the initial value.\\\\\
+The second order Hamiltonian $H_2$ can be rewritten to\
+\\begin{align}\
+H_{2u}=-p-iw_1up_u-w_2vp_v\
+\\end{align} \
+in terms of a {\\it complex} normal coordinate:\
+\\begin{align}\
+\\left(\\begin{matrix}u\\\\p_u\\\\v\\\\p_v\\end{matrix}\\right)&=\\sqrt U\\left(\\begin{matrix}\\frac{w_1+w_2}{2}&-\\frac{i}{p}&-\\frac{\\sqrt{w_1^2-w_2^2}}{2}&\\frac{1}{p}\\sqrt{\\frac{w_1-w_2}{w_1+w_2}}\\\\\
+-\\frac{ip}{4}(w_1+w_2)^2&\\frac{w_1+w_2}{2}&-\\frac{p(w_1-w_2)}{4}\\sqrt{w_1^2-w_2^2} & -\\frac{w_1-w_2}{2}\\sqrt\\frac{w_1-w_2}{w_1+w_2}\\\\\
+-\\frac{\\sqrt{w_1^2-w_2^2}}{2}&\\frac{1}{p}\\sqrt{\\frac{w_1-w_2}{w1+w2}}&\\frac{w_1+w_2}{2}&\\frac{1}{p}\\\\\
+-\\frac{p(w_1-w_2)}{4}\\sqrt{w_1^2-w_2^2}&-i\\frac{w_1-w_2}{2}\\sqrt\\frac{w_1-w_2}{w_1+w_2}&-\\frac{ip}{4}(w_1+w_2)^2&\\frac{w_1+w_2}{2}\
+\\end{matrix}\\right)\\left(\\begin{matrix}x\\\\p_x\\\\y\\\\p_y\\end{matrix}\\right)\\ .\
+\\end{align}\
+Note that $H_{2u}$ is real. Thus the transformation of the longitudinal coordinate is obtained as\
+\\begin{align}\
+z&=z_0+\\left(-iup_u\\frac{\\partial w_1}{\\partial p}-vp_v\\frac{\\partial w_2}{\\partial p}+\\varDelta v\\right)\\ell\\\\\
+&=z_0+\\frac{U}{p}\\left(iw_1^3u_0p_{u0}+w_2^3v_0p_{v0}+\\varDelta v\\right)\\ell\\ ,\
+\\end{align}\
+using $up_u=u_0p_{u0}$ and $vp_v=v_0p_{v0}$.;;;27]",""],
+          "solution-dH",{}},
+
+        {"solution-dH",
+          EquAlign["Text[\
+The transformation for the correction term $\\varDelta H=H-H_2$ for $1/\\rho=0$:\
+\\begin{align}\
+\\varDelta H&=-\\sqrt{p^2-(p_x-a_c)^2-(p_y-a_y)^2}+p-\\frac{(p_x-a_x)^2}{2p}-\\frac{(p_y-a_y)^2}{2p}\\\\\
+&=p-p_z-\\frac{(p_x-a_x)^2}{2p}-\\frac{(p_y-a_y)^2}{2p}\\ ,\\\\\
+a_x&=-\\frac{B_z}{2}y\\ ,\\\\\
+a_y&=\\frac{B_z}{2}x\\ ,\
+\\end{align}\
+is written as\
+\\begin{align}\
+x&=x_0+\\varDelta x\\ ,\\\\\
+y&=y_0+\\varDelta y\\ ,\\\\\
+p_x&=p_{x0}+\\frac{B_z}{2}\\varDelta y\\ ,\\\\\
+p_y&=p_{y0}-\\frac{B_z}{2}\\varDelta x\\ ,\
+\\end{align}\
+where\
+\\begin{align}\
+\\varDelta x&=\\left(p_{x0}+\\frac{B_z}{2}y_0\\right)\\sin w\\ell-\\left(p_{y0}-\\frac{B_z}{2}x_0\\right)(\\cos w\\ell-1) ,\\\\\
+\\varDelta y&=\\left(p_{x0}+\\frac{B_z}{2}y_0\\right)(\\cos w\\ell-1)+\\left(p_{y0}-\\frac{B_z}{2}x_0\\right)\\sin w\\ell\\ ,\\\\\
+w&=\\frac{B_z(p-p_z)}{pp_z}\\ .\
+\\end{align}\
+The longitudinal coordinate is transformed as:\
+\\begin{align}\
+z=z_0+\\left(\\frac{3}{2}-\\frac{p}{p_z}-\\frac{p_z^2}{2p^2}+\\varDelta v\\right)\\ell\\ .\
+\\end{align};;;12]",""],
+          "solution-H2",
+          {}}}
+
+        }}},
 
       {"remarks-on-dynamics",
         EquAlign["Text[There are several remarks on the dynamics in SAD:\n\
 \\begin{itemize}\n\
-\\item The Hamiltonian describes the motion of particles in the {\\it body} of an element. Some effects at the boundary of an element, such as {\\it fringe field}, are not expressed by that Hamiltonian. SAD treats them by canonical transformations approximating these effects. All transformations in SAD are symplectic up to the round-off errors, except radiations.\n\
+\\item All transformations in SAD are symplectic up to the round-off errors, except radiations.\n\
+\\item The Hamiltonian describes the motion of particles in the {\\it body} of an element. Some effects at the boundary of an element, such as {\\it fringe field}, are not expressed by the Hamiltonian. SAD treats them by canonical transformations approximating these effects.\n\
 \\item In a case of a linac, where the design momentum $p_0$ changes along the beam line needs a special treatment.\n\
 \\item The Hamiltonian above analytical solutions in the case of constant field without acceleration, ie., in a solenoid + dipole field. SAD uses such analytic solutions.\n\
 \\item If the field is linear in $x$ and $y$ such as for {\\tt QUAD}, and there is no acceleration, the Hamiltonian truncated up to the second order of $(x,p_x,y,p_y)$ has an analytic solution. SAD uses that solution and adds the nonlinear corrections coming from the $\\sqrt{\\ }$ term by slicing an element. This method gives the exact linear transformation at least around the design orbit. \n\
 \\item Transformations shown in this manual are not necessarily coded as they are. Considerations for round-off errors as well as computing efficiency are taken into account in actual routines.\n\
-\\item Transformations shown here are basically for trackings. {\\tt EMITTANCE(EMIT)} and {\\tt CALC} may use slightly different ones depending on the element.\n\
-\\end{itemize};;;0]",""],
-        "Hamiltonian",
+\\item Transformations shown here are basically for trackings. {\\tt EMITTANCE(EMIT)} and {\\tt CALC} may use slightly different but still symplectic ones depending on the element.\n\
+\\end{itemize}]",""],
+        "Hamiltonian 2nd-order-Hamiltonian",
         {}},
 
    {"x-y-coupling",
      EquAlign["Text[\
-The transformation matrix from the physical coordinate $(x,p_x,y,p_y)$ to the $x$-$y$ decoupled coordinate $(X,P_x,Y,P_y)$ is written as\n\
+The transformation matrix from the physical coordinate $(x,p_x,y,p_y)$ to the $x$-$y$ decoupled coordinate $(X,P_X,Y,P_Y)$ is written as\n\
 \\begin{align}\n\
 {\\rm R}=\\left(\\begin{matrix}\\mu {\\rm I} & {\\rm J}{\\rm r}^T{\\rm J}\\\\\
-{\\rm r}&\\mu {\\rm I}\\end{matrix}\\right)\n\
+{\\rm r}&\\mu {\\rm I}\\end{matrix}\\right)=\
+\\left(\\begin{matrix}\\mu&.&-{\\tt R4}&{\\tt R2}\\\\\
+.&\\mu&{\\tt R3}&-{\\tt R1}\\\\\
+{\\tt R1}&{\\tt R2}&\\mu&.\\\\\
+{\\tt R3}&{\\tt R4}&.&\\mu\\end{matrix}\\right)\n\
 \\end{align} with a submatrix\n\
 \\begin{align}\n\
 {\\rm r}=\\left(\\begin{matrix}{\\tt R1}&{\\tt R2}\\\\\n\
@@ -4545,7 +4830,16 @@ where \n\
 &{\\rm I}\\equiv \\left(\\begin{matrix}1 & 0 \\\\ 0 & 1 \\end{matrix}\\right)\\ ,\\\\\n\
 &{\\rm J}\\equiv\\left(\\begin{matrix}0 & 1 \\\\ -1 & 0 \\end{matrix}\\right)\\ .\n\
 \\end{align}\n\
- The value of function {\\tt DETR} is equal to $\\det({\\rm r})$ in this case.\n\n\
+ The inverse of R is obtained by reversing the sign of r:\n\
+\\begin{align}\n\
+{\\rm R}^{-1}=\\left(\\begin{matrix}\\mu {\\rm I} & -{\\rm J}{\\rm r}^T{\\rm J}\\\\\
+-{\\rm r}&\\mu {\\rm I}\\end{matrix}\\right)=\
+\\left(\\begin{matrix}\\mu&.&{\\tt R4}&-{\\tt R2}\\\\\
+.&\\mu&-{\\tt R3}&{\\tt R1}\\\\\
+-{\\tt R1}&-{\\tt R2}&\\mu&.\\\\\
+-{\\tt R3}&-{\\tt R4}&.&\\mu\\end{matrix}\\right)\n\
+\\end{align}\\ .\n\n\
+ The value of the function {\\tt DETR} is equal to $\\det({\\rm r})$ in this case.\n\n\
 Let T stand for the physical transfer matrix from location 1 to location 2, then the transformation in the decoupled coordinate is diagonalized as\n\
 \\begin{align}\n\
 {\\rm R}_2{\\rm T}{\\rm R}_1^{-1} = \\left(\\begin{matrix}{\\rm T}_X & 0 \\\\ 0 & {\\rm T}_Y \\end{matrix}\\right)\\ .\
@@ -4557,7 +4851,7 @@ If $\\det({\\rm r})\\ge1$, the above condition for $\\mu$ is violated. In such a
 \\mu {\\rm I} &{\\rm r}\\end{matrix}\\right)\\ ,\n\
 \\end{align}\n\
 where $\\mu^2 + \\det({\\rm r}) = 1$. The function {\\tt DETR} shows a number $a-\\det({\\rm r})$, where $a = 1.375$. thus the alternative form is used when $\\det({\\rm r}) >= 0.625$.\
-;;;7]","\
+;;;8]","\
 The transformation matrix from the physical coordinate {x,px,y,py} to the x-y decoupled coordinate {X,Px,Y,Py} is written as\n\n\
       R = {{mu I, J . Transpose[r] . J}, {r, mu I}}, \n\n\
 with the submatrix r={{R1, R2},{R3, R4}}, where mu^2 + Det[r] = 1, I = {{1,0},{0,1}}, and J={{0, 1}, {-1, 0}}. The value of function DETR is equal to Det[r] in this case.\n\n\
@@ -4664,7 +4958,53 @@ Matrices Hx,y define dispersions as\n\n\
     {zetay,  etay},\n\
     {zetapy, etapy}} = R . Join[Hx, Hy] ."],
       "",
-      {}}}}
+      {}}}},
+
+    {"synchrotron-radiation",
+EquAlign["Text[The evaluation of synchrotron radiation in SAD is done usingbased on ``kinematical method\":\\\\\n\
+\\\\\n\
+Let ${\\bm q}$ denote the orientation vector of the momentum of a particle:\n\
+\\begin{align}\n\
+{\\bm q}&=\\left(\\frac{p_x}{p}, \\frac{p_y}{p}, \\frac{p_z}{p}\\right)\\ ,\\\\\n\
+p_z&=\\sqrt{p^2-p_x^2-p_y^2}\\ .\n\
+\\end{align}\n\
+Suppose a particles traverses a section (1, 2) of an accelerator component, then the orientation changes from ${\\bm q}_1$ to ${\\bm q}_2$. The bending angle $\\phi$ and the radius of curvature $\\rho_{\\rm r}$ are approximated, assuming a uniform bending, by:\n\
+\\begin{align}\n\
+\\sin|\\phi|=|{\\bm q}_2\\times{\\bm q}_1|\\ ,\\\\\n\
+\\rho_{\\rm r}=\\frac{{\\tt L}_{12}-z_2+z_1}{|\\phi|},\n\
+\\end{align}\n\
+where ${\\tt L}_{12}$ is the nominal length of the component between 1 and 2, and $z_{1,2}$ are the values of longitudinal coordinate $z\\equiv-v(t-t_0)$ at the locations 1 and 2.\\\\\n\
+\\begin{figure*}[h!]\n\
+\\begin{center}\n\
+\\includegraphics[width=6cm]{"//Directory[]//"/SADHelp_img/SR.png}\n\
+\\caption{The kinematical method for synchrotron radiation.}\n\
+\\end{center}\n\
+\\end{figure*}\\\\\n\
+By knowing $\\phi$ and $\\rho_{\\rm r}$ as well as the momentum of the particle, we can derive all information about the emission of synchrotron radiation (if we can use a classical formula with uniform bending). \n\
+\\begin{itemize}\n\
+\\item Thus the synchrotron radiation can be handled {\\it by a single routine for any type of component}, such as  multipoles, solenoid, fringe field, even including electric field, without knowing the details of the field.\n\
+\\item A component is sliced so that $N_\\gamma\\lesssim1$.\n\
+\\item Not only the radiation itself, its derivatives by phase space coordinated can be obtained kinematically using the transfer matrix. These derivatives are used to evaluate the damping and excitation matrices.\n\
+\\item In the region where the field is not uniform, such as the {\\tt F1} region of a {\\tt BEND}, a special treatment for $\\rho_{\\rm r}$ is applied.\n\
+\\item This method may be applied for a {\\it spin motion} if the longitudinal filed is taken care properly.\n\
+\\end{itemize};;;4]",""],
+      "RAD RADCOD Hamiltonian BEND F1",
+      {}},
+
+     {"equilibrium-beam-envelope",
+      EquAlign["Text[\
+The equilibrium beam envelope (second order moment) $\\left\\langle X_iX_j\\right\\rangle$ is calculated by the {\\tt EMITTANCE(EMIT)} command and {\\tt Emittance[]} function by solving:\
+\\begin{align}\
+\\left\\langle X_iX_j\\right\\rangle={\\rm M}\\left\\langle X_iX_j\\right\\rangle{\\rm M}^T+\\Delta_{ij}\\ ,\
+\\end{align}\
+where $X_i=(x,p_x,y,p_y,z,\\delta)$ is the deviation from the closed orbit at the entrance of the beam line, M the one-turn transfer matrix including the damping, and $\\Delta_{ij}$ the one-turn excitation due to synchrotron radiation and intrabeam scattering. The excitation $\\Delta_{ij}$ is affected by the envelope in the case of intrabeam ({\\tt INTRA}). The transfer matrix M can be affected by the envelope due to space-charge in the case of {\\tt WSPAC}. Thus iterations are done for such cases.\\\\\\\\\
+In the case of an ideal ring, as the intrinsic vertical emittance might be too small, the intrabema or space charge effects can be unrealistically large. For such cases, a global variable {\\tt MINCOUP} is useful to specify their {\\it minimum} values as:\
+\\begin{align}\
+\\varepsilon_{x,y}={\\tt Max}\\left[\\varepsilon^0_{x,y},{\\tt MINCOUP}\\times(\\varepsilon^0_x+\\varepsilon^0_y)\\right]\\ ,\
+\\end{align}\
+where $\\varepsilon^0_{x,y}$ are the emittances given only by the lattice.;;;2]",""],
+     "EMITTANCE(EMIT) Emittance INTRA WSPAC MINCOUP",
+    {}}
 
         }
       },

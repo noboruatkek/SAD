@@ -3,9 +3,10 @@
       use ffs
       use ffs_pointer
       use tffitcode
-      use tfcsi,only:cssetp
+      use tfcsi,only:ipoint
       implicit none
-      integer*4 lfno,i,k,j,next1
+      integer*4 ,intent(in):: lfno
+      integer*4 i,k,j,next1
       character*(MAXPNAME) word
       character*8 key,ki,tfkwrd,tfkwrd1
       logical*4 tmatch,apply,exist
@@ -14,10 +15,10 @@
  1    call peekwd(word,next1)
       exist=.false.
       LOOP_I: do i=1,nele
-        k=idelc(klp(i))
+        k=idelc(nelvx(i)%klp)
         if(tmatch(pname(k),word))then
           if(.not. exist)then
-            call cssetp(next1)
+            ipoint=next1
             exist=.true.
           endif
           j=0
@@ -27,13 +28,13 @@
             ki=tfkwrd(idtype(k),j)
             if(ki .eq. key)then
               apply=.true.
-              ival(i)=j
+              nelvx(i)%ival=j
               cycle LOOP_I
             endif
             ki=tfkwrd1(idtype(k),j)
             if(ki .eq. key)then
               apply=.true.
-              ival(i)=j
+              nelvx(i)%ival=j
               cycle LOOP_I
             endif
           enddo
@@ -43,10 +44,12 @@
       if(exist)then
         go to 1
       endif
-      if(.not. apply)then
+      if(apply)then
+        evarini=.true.
+      else
         call termes(lfno,
      $       'No element for VAR_Y with keyword: ',key)
-        call cssetp(next1)
+        ipoint=next1
       endif
       return
       end

@@ -129,19 +129,18 @@
       end
 
       complex*16 pure function tcatan2(z1,z)
+      use macmath
       implicit none
-      real*8 pih
-      parameter (pih=3.1415926535897932385d0*0.5d0)
       complex*16 ,intent(in)::z,z1
       if(z .eq. (0.d0,0.d0))then
         if(dble(z1) .eq. 0.d0)then
           if(imag(z1) .eq. 0.d0)then
             tcatan2=(0.d0,0.d0)
           else
-            tcatan2=sign(pih,imag(z1))
+            tcatan2=sign(m_pi_2,imag(z1))
           endif
         else
-          tcatan2=sign(pih,dble(z1))
+          tcatan2=sign(m_pi_2,dble(z1))
         endif
       else
         tcatan2=tcatan(z1/z)
@@ -198,16 +197,72 @@
       return
       end
 
-      real*8 pure function xsin(x)
+      real*8 pure function xsin(x) result(xs)
       implicit none
       real*8 ,intent(in)::x
       real*8 x2
-      if(abs(x) .gt. .1d0)then
-        xsin=x-sin(x)
-      else
+      if(abs(x) .lt. 1.d-3)then
         x2=x**2
-        xsin=x*x2/6.d0*(1.d0-x2/20.d0*(1.d0-x2/42.d0*(
+        xs=x*x2/6.d0*(1.d0-x2/20.d0*(1.d0-x2/42.d0))
+      elseif(abs(x) .lt. 0.1d0)then
+        x2=x**2
+        xs=x*x2/6.d0*(1.d0-x2/20.d0*(1.d0-x2/42.d0*(
      1       1.d0-x2/72.d0*(1.d0-x2/110.d0))))
+      else
+        xs=x-sin(x)
+      endif
+      return
+      end
+
+      subroutine sxsin(x,s,xs)
+      implicit none
+      real*8 ,intent(in)::x
+      real*8 ,intent(out)::s,xs
+      real*8 x2
+      if(abs(x) .lt. 1.d-3)then
+        x2=x**2
+        xs=x*x2/6.d0*(1.d0-x2/20.d0*(1.d0-x2/42.d0))
+        s=x-xs
+      elseif(abs(x) .lt. .1d0)then
+        x2=x**2
+        xs=x*x2/6.d0*(1.d0-x2/20.d0*(1.d0-x2/42.d0*(
+     1       1.d0-x2/72.d0*(1.d0-x2/110.d0))))
+        s=x-xs
+      else
+        s=sin(x)
+        xs=x-s
+      endif
+      return
+      end
+
+      pure elemental subroutine xsincos(x,s,xs,c,dc)
+      implicit none
+      real*8 ,intent(in)::x
+      real*8 ,intent(out)::s,xs,c,dc
+      real*8 x2
+      if(abs(x) .lt. 1.d-3)then
+        x2=x**2
+        xs=x*x2/6.d0*(1.d0-x2/20.d0*(1.d0-x2/42.d0))
+        s=x-xs
+        dc=-x2/2.d0*(1.d0-x2/12.d0*(1.d0-x2/30.d0))
+        c=1.d0+dc
+      elseif(abs(x) .lt. .1d0)then
+        x2=x**2
+        xs=x*x2/6.d0*(1.d0-x2/20.d0*(1.d0-x2/42.d0*(
+     1       1.d0-x2/72.d0*(1.d0-x2/110.d0))))
+        s=x-xs
+        dc=-x2/2.d0*(1.d0-x2/12.d0*(1.d0-x2/30.d0*
+     $       (1.d0-x2/56.d0*(1.d0-x2/90.d0))))
+        c=1.d0+dc
+      else
+        s=sin(x)
+        xs=x-s
+        c=cos(x)
+        if(c .gt. 0.d0)then
+          dc=-s**2/(1.d0+c)
+        else
+          dc=c-1.d0
+        endif
       endif
       return
       end
@@ -216,12 +271,64 @@
       implicit none
       real*8 ,intent(in)::x
       real*8 x2
-      if(abs(x) .gt. .1d0)then
-        xsinh=x-sinh(x)
-      else
+      if(abs(x) .lt. 1.d-3)then
+        x2=x**2
+        xsinh=-x*x2/6.d0*(1.d0+x2/20.d0*(1.d0+x2/42.d0))
+      elseif(abs(x) .lt. 0.1d0)then
         x2=x**2
         xsinh=-x*x2/6.d0*(1.d0+x2/20.d0*(1.d0+x2/42.d0*(
      1       1.d0+x2/72.d0*(1.d0+x2/110.d0))))
+      else
+        xsinh=x-sinh(x)
+      endif
+      return
+      end
+
+      pure elemental subroutine sxsinh(x,sh,xsh)
+      implicit none
+      real*8 ,intent(in)::x
+      real*8 ,intent(out)::sh,xsh
+      real*8 x2
+      if(abs(x) .lt. 1.d-3)then
+        x2=x**2
+        xsh=-x*x2/6.d0*(1.d0+x2/20.d0*(1.d0+x2/42.d0))
+        sh=x-xsh
+      elseif(abs(x) .lt. 0.1d0)then
+        x2=x**2
+        xsh=-x*x2/6.d0*(1.d0+x2/20.d0*(1.d0+x2/42.d0*(
+     1       1.d0+x2/72.d0*(1.d0+x2/110.d0))))
+        sh=x-xsh
+      else
+        sh=sinh(x)
+        xsh=x-sh
+      endif
+      return
+      end
+
+      pure elemental subroutine xsincosh(x,sh,xsh,ch,dch)
+      implicit none
+      real*8 ,intent(in)::x
+      real*8 ,intent(out)::sh,xsh,ch,dch
+      real*8 x2
+      if(abs(x) .lt. 1.d-3)then
+        x2=x**2
+        xsh=-x*x2/6.d0*(1.d0+x2/20.d0*(1.d0+x2/42.d0))
+        sh=x-xsh
+        dch=x2/2.d0*(1.d0+x2/12.d0*(1.d0+x2/30.d0))
+        ch=1.d0+dch
+      elseif(abs(x) .lt. 0.1d0)then
+        x2=x**2
+        xsh=-x*x2/6.d0*(1.d0+x2/20.d0*(1.d0+x2/42.d0*(
+     1       1.d0+x2/72.d0*(1.d0+x2/110.d0))))
+        sh=x-xsh
+        dch=x2/2.d0*(1.d0+x2/12.d0*(1.d0+x2/30.d0*
+     $       (1.d0+x2/56.d0*(1.d0+x2/90.d0))))
+        ch=1.d0+dch
+      else
+        sh=sinh(x)
+        xsh=x-sh
+        ch=cosh(x)
+        dch=sh**2/(1.d0+ch)
       endif
       return
       end
@@ -330,25 +437,23 @@
       return
       end
 
-      complex*16 function tfdummy(c)
+      complex*16 pure function tfdummy(c)
       use cfunc
       implicit none
       complex*16 ,intent(in)::c
-      icrtc=-1
       tfdummy=(0.d0,0.d0)
       return
       end
 
-      real*8 function sqrtl(x)
+      real*8 pure elemental function sqrtl(x)
       implicit none
-      real*8 x
-      real*8 ,parameter :: am=1.d-20
+      real*8 ,intent(in)::  x
+      real*8 ,parameter :: am=1.d-100
       sqrtl=sqrt(max(x,am))
       return
       end function
 
-
-      real*8 pure function p2h(p)
+      real*8 pure elemental function p2h(p)
       implicit none
       real*8, intent(in) :: p
       real*8 p2
@@ -357,12 +462,12 @@
         p2=1.d0/p**2
         p2h=p*(1.d0+p2*(0.5d0-p2*.125d0))
       else
-        p2h=sqrt(1.d0+p**2)
+        p2h=hypot(1.d0,p)
       endif
       return
       end function
 
-      real*8 pure function h2p(h)
+      real*8 pure elemental function h2p(h)
       implicit none
       real*8, intent(in) :: h
       real*8 h2
@@ -411,12 +516,65 @@
       return
       end function
 
+      real*8 function akang(ak,al,cr1) result(theta1)
+      use macmath, only:m_pi_2
+      implicit none
+      complex*16 , intent(in)::ak
+      complex*16 , intent(out)::cr1
+      real*8 , intent(in)::al
+      complex*16 a
+      if(al .eq. 0.d0)then
+        if(imag(ak) .eq. 0.d0)then
+          if(dble(ak) .lt. 0.d0)then
+            theta1=m_pi_2
+            cr1=(0.d0,-1.d0)
+          else
+            theta1=0.d0
+            cr1=(1.d0,0.d0)
+          endif
+        else
+          theta1=atan2(imag(ak),dble(ak))*.5d0
+          cr1=dcmplx(cos(theta1),-sin(theta1))
+        endif
+      else
+        a=ak*al
+        if(imag(a) .eq. 0.d0)then
+          if(dble(a) .lt. 0.d0)then
+            theta1=m_pi_2
+            cr1=(0.d0,-1.d0)
+          else
+            theta1=0.d0
+            cr1=(1.d0,0.d0)
+          endif
+        else
+          theta1=atan2(imag(a),dble(a))*.5d0
+          cr1=dcmplx(cos(theta1),-sin(theta1))
+        endif
+      endif
+      return
+      end function
+
+      real*8 pure elemental function hypot3(x,y,z) result(v)
+      implicit none
+      real*8 ,intent(in)::x,y,z
+      real*8 a(3),am
+      a=abs((/x,y,z/))
+      am=maxval(a)
+      if(am .eq. 0.d0)then
+        v=0.d0
+      else
+        a(maxloc(a))=0.d0
+        v=am+am*sqrt1(sum((a/am)**2))
+      endif
+      return
+      end function
+
       end module
 
       subroutine tfmod(isp1,kx,mode,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) kx
+      type (sad_descriptor) kx,tfmodf
       integer*4 isp1,irtc,itfmessage,mode,i
       if(isp .le. isp1+1)then
         irtc=itfmessage(9,'General::narg','"2"')
@@ -426,19 +584,20 @@
         else
           kx=dtastk(isp1+1)
           do i=isp1+2,isp
-            call tfmodf(kx,dtastk(i),kx,mode,irtc)
+            kx=tfmodf(kx,dtastk(i),mode,irtc)
             if(irtc .ne. 0)then
               return
             endif
           enddo
         endif
       else
-        call tfmodf(dtastk(isp1+1),dtastk(isp),kx,mode,irtc)
+        kx=tfmodf(dtastk(isp1+1),dtastk(isp),mode,irtc)
       endif
       return
       end
 
-      recursive subroutine tfmodf(k1,k2,kx,mode,irtc)
+      recursive function tfmodf(k1,k2,mode,irtc)
+     $     result(kx)
       use iso_c_binding
       use tfstk
       use mathfun
@@ -453,6 +612,7 @@
 c     begin initialize for preventing compiler warning
       cx=0.d0
       vx=0.d0
+      kx=dxnull
 c     end   initialize for preventing compiler warning
       ka1=ktfaddrd(k1)
       ka2=ktfaddrd(k2)
@@ -474,17 +634,20 @@ c     end   initialize for preventing compiler warning
      $               -tfloor(kl1%rbody(i)/kl2%rbody(i))*kl2%rbody(i)
               enddo
             elseif(mode .eq. 1)then
-              do i=1,n1
-                klr%rbody(i)=iand(int8(kl1%rbody(i)),int8(kl2%rbody(i)))
-              enddo
+c              do i=1,n1
+                klr%rbody(1:n1)=iand(int8(kl1%rbody(1:n1)),
+     $             int8(kl2%rbody(1:n1)))
+c              enddo
             elseif(mode .eq. 2)then
-              do i=1,n1
-                klr%rbody(i)=ior(int8(kl1%rbody(i)),int8(kl2%rbody(i)))
-              enddo
+c              do i=1,n1
+                klr%rbody(1:n1)=ior(int8(kl1%rbody(1:n1)),
+     $             int8(kl2%rbody(1:n1)))
+c              enddo
             elseif(mode .eq. 3)then
-              do i=1,n1
-                klr%rbody(i)=ieor(int8(kl1%rbody(i)),int8(kl2%rbody(i)))
-              enddo
+c              do i=1,n1
+                klr%rbody(1:n1)=ieor(int8(kl1%rbody(1:n1)),
+     $             int8(kl2%rbody(1:n1)))
+c              enddo
             endif
           else
             call tfgetllstkall(kl1)
@@ -492,8 +655,8 @@ c     end   initialize for preventing compiler warning
             isp2=isp
             do i=1,n1
               isp=isp+1
-              call tfmodf(dtastk(isp0+i),dtastk(isp0+n1+i),
-     $             dtastk(isp),mode,irtc)
+              dtastk(isp)=tfmodf(dtastk(isp0+i),dtastk(isp0+n1+i),
+     $             mode,irtc)
               if(irtc .ne. 0)then
                 isp=isp0
                 return
@@ -508,7 +671,7 @@ c     end   initialize for preventing compiler warning
           isp2=isp
           do i=1,n1
             isp=isp+1
-            call tfmodf(dtastk(isp0+i),k2,dtastk(isp),mode,irtc)
+            dtastk(isp)=tfmodf(dtastk(isp0+i),k2,mode,irtc)
             if(irtc .ne. 0)then
               isp=isp0
               return
@@ -528,7 +691,7 @@ c     end   initialize for preventing compiler warning
         isp2=isp
         do i=1,n2
           isp=isp+1
-          call tfmodf(k1,dtastk(isp0+i),dtastk(isp),mode,irtc)
+          dtastk(isp)=tfmodf(k1,dtastk(isp0+i),mode,irtc)
           if(irtc .ne. 0)then
             isp=isp0
             return
@@ -619,8 +782,8 @@ c     end   initialize for preventing compiler warning
           isp2=isp
           do i=1,n1
             isp=isp+1
-            call tfmodf(dtastk(isp0+i),dtastk(isp0+n1+i),
-     $           dtastk(isp),mode,irtc)
+            dtastk(isp)=tfmodf(dtastk(isp0+i),dtastk(isp0+n1+i),
+     $           mode,irtc)
             if(irtc .ne. 0)then
               isp=isp0
               return
@@ -634,7 +797,7 @@ c     end   initialize for preventing compiler warning
           isp2=isp
           do i=1,isp2-isp0
             isp=isp+1
-            call tfmodf(dtastk(isp0+i),k2,dtastk(isp),mode,irtc)
+            dtastk(isp)=tfmodf(dtastk(isp0+i),k2,mode,irtc)
             if(irtc .ne. 0)then
               isp=isp0
               return
@@ -791,7 +954,7 @@ c     end   initialize for preventing compiler warning
       subroutine tfrestrict(isp1,kx,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) kx
+      type (sad_descriptor) kx,tfrestrictl
       integer*4 isp1,irtc,itfmessage
       if(isp .ne. isp1+3)then
         irtc=itfmessage(9,'General::narg','"3"')
@@ -800,13 +963,14 @@ c     end   initialize for preventing compiler warning
         irtc=-1
 c        irtc=itfmessage(9,'General::wrongtype','"x, min, max"')
       else
-        call tfrestrictl(dtastk(isp1+1),kx,
+        kx=tfrestrictl(dtastk(isp1+1),
      $       rtastk(isp-1),rtastk(isp),irtc)
       endif
       return
       end
 
-      recursive subroutine tfrestrictl(k,kx,x1,x2,irtc)
+      recursive function tfrestrictl(k,x1,x2,irtc)
+     $     result(kx)
       use tfstk
       implicit none
       type (sad_descriptor) k,kx
@@ -835,7 +999,7 @@ c          enddo
           isp0=isp
           do i=1,n
             isp=isp+1
-            call tfrestrictl(kl%dbody(i),dtastk(isp),x1,x2,irtc)
+            dtastk(isp)=tfrestrictl(kl%dbody(i),x1,x2,irtc)
             if(irtc .ne. 0)then
               return
             endif
@@ -844,6 +1008,7 @@ c          enddo
           isp=isp0
         endif
       else
+        kx=dxnull
         irtc=-1
 c        irtc=itfmessage(9,'General::wrongtype',
 c     $       '"Real or List of Reals"')
@@ -854,7 +1019,7 @@ c     $       '"Real or List of Reals"')
       integer*4 function itfsyserr(level)
       implicit none
       character*132 string
-      integer*4 level,itfmessage,i,l
+      integer*4 level,itfmessagestr,i,l
       call gerror(string)
       do i=1,132
         if(string(i:i) .eq. char(0))then
@@ -864,15 +1029,15 @@ c     $       '"Real or List of Reals"')
         endif
       enddo
       l=len_trim(string)
- 10   itfsyserr=itfmessage(level,'System::error',
-     $     '"'//string(1:l)//'"')
+ 10   itfsyserr=itfmessagestr(level,'System::error',string(1:l))
       return
       end
 
-      recursive subroutine tfeintf(fun,cfun,k,kx,cmpl,rmin,rmax,ir)
+      recursive function tfeintf(fun,cfun,k,cmpl,rmin,rmax,ir)
+     $     result(kx)
       use tfstk
       use cfunc
-      use tmacro
+c      use tmacro
       implicit none
       type (sad_descriptor) k,kx
       type (sad_dlist), pointer ::klx,kl
@@ -884,6 +1049,7 @@ c     $       '"Real or List of Reals"')
       logical*4 cmpl
       external fun,cfun
       ir=0
+      kx=dxnull
       if(ktfrealq(k,v))then
         if(v .lt. rmin .or. v .gt. rmax)then
           cv=cfun(dcmplx(v,0.d0))
@@ -965,8 +1131,8 @@ c     $       '"Real or List of Reals"')
                   rtastk(isp)=dble(cfun(cv))
                 endif
               elseif(tflistq(kl%dbody(i)))then
-                call tfeintf(fun,cfun,kl%dbody(i),
-     $               dtastk(isp),cmpl,rmin,rmax,ir)
+                dtastk(isp)=tfeintf(fun,cfun,kl%dbody(i),
+     $               cmpl,rmin,rmax,ir)
                 if(ir .ne. 0.d0)then
                   isp=isp0
                   return
@@ -989,10 +1155,11 @@ c     $       '"Real or List of Reals"')
       return
       end
 
-      recursive subroutine tfeintf2(fun,cfun,k,k1,cmpl,kx,ir)
+      recursive function tfeintf2(fun,cfun,k,k1,cmpl,ir)
+     $     result(kx)
       use tfstk
       use cfunc
-      use tmacro
+c      use tmacro
       implicit none
       type (sad_descriptor) kx,k,k1,ki,k1i
       type (sad_dlist), pointer ::klx,kl,kl1
@@ -1002,7 +1169,7 @@ c     $       '"Real or List of Reals"')
       external fun,cfun
       real*8 fun,v,v1
       complex*16 cv,cv1,cfun
-      
+      kx=dxnull
       ir=0
       if(ktfrealq(k,v) .and. ktfrealq(k1,v1))then
         kx=dfromr(fun(v,v1))
@@ -1044,7 +1211,7 @@ c     $       '"Real or List of Reals"')
      $           ktfrealq(k1i))then
               rtastk(isp)=fun(kl%rbody(i),kl1%rbody(i))
             elseif(tflistq(ki) .and. tflistq(k1i))then
-              call tfeintf2(fun,cfun,ki,k1i,cmpl,dtastk(isp),ir)
+              dtastk(isp)=tfeintf2(fun,cfun,ki,k1i,cmpl,ir)
               if(ir .ne. 0.d0)then
                 return
               endif
@@ -1062,46 +1229,6 @@ c     $       '"Real or List of Reals"')
       return
       end
 
-      subroutine tfmain(isp1,kx,irtc)
-      use tfstk
-      use trackbypass, only: bypasstrack
-      use tfrbuf
-      use tmacro
-      implicit none
-      type (sad_descriptor) kx
-      integer*4 isp1,irtc,infl0,itfmessage,lfn,ierrfl,ierr,nc
-      ierr=0
-      if(isp .eq. isp1+2)then
-        ierr=int(rtastk(isp))
-      elseif(isp .ne. isp1+1)then
-        irtc=itfmessage(9,'General::narg','"1 or 2"')
-        return
-      endif
-c      lfn=itfopenread(ktastk(isp1+1),.false.,irtc)
-      call tfopenread(isp1,kx,irtc)
-      if(irtc .ne. 0)then
-        return
-      endif
-      if(.not. ktfrealq(kx,lfn))then
-        irtc=itfmessage(9,'General::wonrgtype','"Real"')
-        return
-      endif
-      infl0=infl
-      infl=lfn
-      ierrfl=errfl
-      errfl=ierr
-      bypasstrack=.true.
-c      write(*,*)'tfmain-1 '
-      call toplvl
-c      write(*,*)'tfmain-2 '
-      bypasstrack=.false.
-      errfl=ierrfl
-      call tfreadbuf(irbclose,lfn,int8(0),int8(0),nc,' ')
-      infl=infl0
-      kx%k=ktfoper+mtfnull
-      return
-      end
-
       recursive subroutine tfrgbcolor(isp1,kx,irtc)
       use tfstk
       implicit none
@@ -1109,8 +1236,7 @@ c      write(*,*)'tfmain-2 '
       type (sad_rlist), pointer ::kl
       integer*8 ka
       integer*4 isp1,irtc,ir,ig,ib,isp2,isp0,itfmessage,i,n
-      character*2 r256(0:255)
-      data r256/
+      character*2 ,parameter :: r256(0:255)=[
      $     '00','01','02','03','04','05','06','07',
      $     '08','09','0A','0B','0C','0D','0E','0F',
      $     '10','11','12','13','14','15','16','17',
@@ -1142,7 +1268,7 @@ c      write(*,*)'tfmain-2 '
      $     'E0','E1','E2','E3','E4','E5','E6','E7',
      $     'E8','E9','EA','EB','EC','ED','EE','EF',
      $     'F0','F1','F2','F3','F4','F5','F6','F7',
-     $     'F8','F9','FA','FB','FC','FD','FE','FF'/
+     $     'F8','F9','FA','FB','FC','FD','FE','FF']
       if(isp .eq. isp1+1)then
         if(.not. tflistq(ktastk(isp)))then
           go to 9000

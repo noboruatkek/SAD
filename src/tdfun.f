@@ -94,7 +94,7 @@ c           write(*,*)'TDFUN ',j,i,idp,kf,kp,kp1,maxcond,flv%mfitp(ka)
                       goto 3010
                     elseif(kf .le. mfitdpy
      $                     .or. kf .ge. mfitpex .and.
-     $                     kf .le. mfitpepx)then
+     $                     kf .le. mfitgmz)then
                       call tfpeak(idp,kf,kpb,kpe,ipeak,vpeak,npeak)
                       do 110 k=1,npeak
                         ip=ipeak(k)
@@ -118,7 +118,7 @@ c                        write(*,*)'tdfun ',k,ip,kf,maxfit,vpeak(k),df(i)
  110                  continue
                     endif
                   else
-                    if(kf .le. mfitpzpy .or.
+                    if(kf .le. mfitgmz .or.
      $                   (kf .ge. mfitleng .and. kf .le. mfitchi3))then
                       maxfit=flv%mfitp(ka) .lt. 0
                       vb=tgfun(kf,kpb,idp)
@@ -296,7 +296,7 @@ c     Generate singlet element name with suffix number(.###)
           call elnameK(kp,name)
           ln=lenw(name)
           go to 100
-        elseif(ilist(ilist(kp,ifele1),ifklp) .eq. kp)then
+        elseif(nelvx(ilist(kp,ifele1))%klp .eq. kp)then
 c     Remove suffix number(.###) if head of multiple elements
 c     Note: index(name,'.') > 0 if mult(kp) != 0
           ln=index(name,'.')-1
@@ -321,7 +321,7 @@ c     Generate singlet element name with suffix number(.###)
           call elnameK(kp1,name1)
           ln1=lenw(name1)
           go to 100
-        elseif(ilist(ilist(kp1,ifele1),ifklp) .eq. kp1)then
+        elseif(nelvx(ilist(kp1,ifele1))%klp .eq. kp1)then
 c     Remove suffix number(.###) if singlet or head of multiple elements
 c     Note: index(name1,'.') > 0 if kp1 != 0
           ln1=index(name1,'.')-1
@@ -397,7 +397,7 @@ c      call tfmemcheckprint('FitFunction-end',.true.,irtc)
       real*8 vf,v,vfa
       logical*4 maxfit,ttrans
       select case (kf)
-      case (mfitbx,mfitby,mfitbz)
+      case (mfitbx,mfitby,mfitbz,mfitgmx,mfitgmy,mfitgmz)
         if(maxfit)then
           if(v .gt. vf)then
             tdfun1=log(vf*factor/v)
@@ -507,19 +507,22 @@ c     v1=pi2*(anint(v/pi2)+sign(.5d0*sin(.5d0*v)**2,sin(v)))
 
       subroutine tfpeak(idp,kf,ibegin,iend,ipeak,vpeak,npeak)
       use ffs_pointer
+      use tffitcode
       implicit none
-      integer*4 ,intent(in)::ibegin,iend,kf,npeak
-      integer*4 idp
+      integer*4 ,intent(in)::ibegin,iend,kf,npeak,idp
       integer*4 ,intent(out)::ipeak(npeak)
       real*8 ,intent(out)::vpeak(npeak)
       integer*4 i,j,k
-      real*8 va,va0,va1
+      real*8 va,va0,va1,tgfun
       vpeak=0.d0
       ipeak=0
       va0=0.d0
-      va=abs(utwiss(kf,idp,itwissp(ibegin)))
+      va=abs(tgfun(kf,ibegin,idp))
       do i=ibegin,iend
-        va1=abs(utwiss(kf,idp,itwissp(min(i+1,iend))))
+        va1=abs(tgfun(kf,min(i+1,iend),idp))
+c        if(kf .eq. mfitgmy)then
+c          write(*,*)'tfpeak ',i,va,va0,va1
+c        endif
         if(va .gt. va0 .and. va .ge. va1)then
           do j=1,npeak
             if(va .gt. abs(vpeak(j)))then
@@ -527,9 +530,8 @@ c     v1=pi2*(anint(v/pi2)+sign(.5d0*sin(.5d0*v)**2,sin(v)))
                 vpeak(k)=vpeak(k-1)
                 ipeak(k)=ipeak(k-1)
               enddo
-              vpeak(j)=utwiss(kf,idp,itwissp(i))
+              vpeak(j)=abs(tgfun(kf,i,idp))
               ipeak(j)=i
-c              write(*,*)'tfpeak ',j,i,kf,idp,itwissp(i),vpeak(j)
               exit
             endif
           enddo

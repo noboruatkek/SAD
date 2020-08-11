@@ -2,16 +2,17 @@
      $     dvon,enarad,irad)
       use element_drift_common
       use tmacro, only:bradprev
-      use temw, only:tsetr0
+      use temw, only:tsetr0,tmulbs
+      use sol, only:tsoldz
       use tspin
+      use kradlib, only:tradke
       use mathfun, only: sqrtl
       implicit none
-      integer*4 irad,i,itmax
-      parameter (itmax=10)
-      real*8 trans(6,12),cod(6),beam(42),trans1(6,6),srot(3,9)
-      real*8 al,bz,ak0x,ak0y,pr,pxi,pyi,pzi,a,ale,alz,
-     $     dv,dvdp,bzh,alr
-      logical*4 dvon,enarad
+      integer*4 ,intent(in):: irad
+      real*8 ,intent(inout):: trans(6,12),cod(6),beam(42),srot(3,9)
+      real*8 ,intent(in)::  al,bz,ak0x,ak0y
+      real*8 trans1(6,6),pr,pxi,pyi,pzi,a,ale,alz,dv,dvdp,bzh,alr
+      logical*4 ,intent(in):: dvon,enarad
       if(al .eq. 0.d0)then
         cod(2)=cod(2)-ak0x
         cod(4)=cod(4)+ak0y
@@ -29,7 +30,7 @@
      $     abs(ak0x) .eq. 0.d0 .and. abs(ak0y) .eq. 0.d0)then
         pxi=cod(2)
         pyi=cod(4)
-        a=min(ampmax,pxi**2+pyi**2)
+        a=pxi**2+pyi**2
         pzi=pr*sqrtl(1.d0-a/pr**2)
         ale=al/pzi
         alz=ale/pzi**2
@@ -42,31 +43,21 @@
         trans1(5,2)=trans1(1,6)
         trans1(5,4)=trans1(3,6)
         trans1(5,6)=dvdp*al+a*alz
-        do i=1,irad
-          trans(1,i)=trans(1,i)+trans1(1,2)*trans(2,i)
-     $         +trans1(1,4)*trans(4,i)+trans1(1,6)*trans(6,i)
-          trans(3,i)=trans(3,i)+trans1(3,2)*trans(2,i)
-     $         +trans1(3,4)*trans(4,i)+trans1(3,6)*trans(6,i)
-          trans(5,i)=trans(5,i)+trans1(5,2)*trans(2,i)
-     $         +trans1(5,4)*trans(4,i)+trans1(5,6)*trans(6,i)
-        enddo
+        trans(1:5:2,1:irad)=trans(1:5:2,1:irad)
+     $       +matmul(trans1(1:5:2,2:6:2),trans(2:6:2,1:irad))
+c        trans(1,1:irad)=trans(1,1:irad)+trans1(1,2)*trans(2,1:irad)
+c     $       +trans1(1,4)*trans(4,1:irad)+trans1(1,6)*trans(6,1:irad)
+c        trans(3,1:irad)=trans(3,1:irad)+trans1(3,2)*trans(2,1:irad)
+c     $       +trans1(3,4)*trans(4,1:irad)+trans1(3,6)*trans(6,1:irad)
+c        trans(5,1:irad)=trans(5,1:irad)+trans1(5,2)*trans(2,1:irad)
+c     $       +trans1(5,4)*trans(4,1:irad)+trans1(5,6)*trans(6,1:irad)
         cod(1)=cod(1)+pxi/pzi*al
         cod(3)=cod(3)+pyi/pzi*al
         cod(5)=cod(5)-(a/(pr+pzi)/pzi+dv)*al
         bzh=0.d0
       else
-c        if(enarad)then
-c          br=tbrhoz()
-c          bx=ak0y/al*br
-c          by=ak0x/al*br
-cc   dl/dx is temporarily set to zero, of course it is wrong...
-c          call trade(trans,beam,cod,bx,by,bz*br,bz,
-c     $         0.d0,0.d0,0.d0,0.d0,
-c     $         al*.5d0,0.d0,0.d0,0.d0,0.d0,.false.,.false.)
-c        else
-c          br=0.d0
-c        endif
         bzh=bz*.5d0
+c cod has canonical momenta!
         cod(2)=cod(2)+bzh*cod(3)
         cod(4)=cod(4)-bzh*cod(1)
         call tsoldz(trans1,cod,al,ak0y/al,ak0x/al,bz,.true.)
@@ -77,17 +68,9 @@ c        endif
         trans1(2,1:6)=trans1(2,1:6)-bzh*trans1(3,1:6)
         trans1(4,1:6)=trans1(4,1:6)+bzh*trans1(1,1:6)
         call tmultr5(trans,trans1,irad)
-c        if(enarad)then
-c          call trade(trans,beam,cod,bx,by,bz*br,bz,
-c     $         0.d0,0.d0,0.d0,0.d0,
-c     $         al*.5d0,0.d0,0.d0,0.d0,0.d0,.false.,.false.)
-c        endif
-c        if(irad .gt. 6)then
-c          call tmulbs(beam ,trans1,.true.,.true.)
-c        endif
       endif
       if(irad .gt. 6)then
-        call tmulbs(beam ,trans1,.false.,.true.)
+        call tmulbs(beam ,trans1,.true.)
       endif
       if(enarad)then
         call tradke(trans,cod,beam,srot,alr,0.d0,bzh)
