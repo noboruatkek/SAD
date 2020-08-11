@@ -1,1 +1,1 @@
-/Users/oide/SAD/oldsad/contrib/gdtoa/strtopQ.c
+/opt/src/SAD/GIT/fork/contrib/gdtoa/strtopQ.c

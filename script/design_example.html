@@ -8,7 +8,7 @@
 </H2></CENTER>
 <A HREF="http://acc-physics.kek.jp/SAD/">
 <H4>
-<img SRC="../sad.png" ALIGN="middle" ALT="SAD" WIDTH=45></A>
+<IMG SRC="../sad.png" ALIGN="middle" ALT="SAD" WIDTH=45></A>
 Back to SAD Home Page</H4>
 <A HREF="../SADHelp.html">
 <H4>
@@ -40,7 +40,7 @@ ON ECHO;OFF CTIME;
         QRD    = (L = 1 K1 = -0.1 )
  ; 
  SEXT   SF     =(L = 1 K2 = 0.1)
-        SD     =(L = 1 K2 = -0.1)
+        SD     =(L = 1 K2 = -0.2)
  ;
  MARK   IP1     =(BETAX = 10   BETAY =10    EMIX = 4.0E-7
            EMIY = 4.0E-7  DP = 0.01 )
@@ -77,8 +77,9 @@ ON ECHO;OFF CTIME;
                     ! variable
   GO;               ! start matching
 !                     define dr as the drawing command (needs X-Window)
-  dr:=FFS["OUT 'a' DRAW BX BY & EX EY {BQ}*; TERM OUT; TDR 'a';"];
-  dr;               ! draw optics of unit cell
+!  dr:=FFS["OUT 'a' DRAW BX BY & EX EY {BQ}*; TERM OUT; TDR 'a';"];
+ dr:=FFS["DRAW BX BY & EX EY {BQ}*;"];
+!  dr;               ! draw optics of unit cell
   SAVE;             ! save the matching result (values of QF, QD) to
                     ! keep them after swtch the beam line.
   Print[TimeUsed[]];! CPU Time used so far.
@@ -100,7 +101,7 @@ ON ECHO;OFF CTIME;
   Q*D MAX 0;        ! set the upper limit of K1 of QRD, QSD 
   FREE QS* QR*;
   GO; 
-  dr;               ! draw suppressor
+!  dr;               ! draw suppressor
   SAVE;
   Print[TimeUsed[]];! CPU Time used so far.
 !
@@ -112,9 +113,9 @@ ON ECHO;OFF CTIME;
   hring=BeamLine[IP1,-supp,Rest[ncell*Rest[unitcell]],supp];
   USE Join[hring,-hring]; ! switch to full ring
   CELL;             ! now periodic condition again
-  CAL NX NY;        ! set to display NX and NY after CAL
+!  CAL NX NY;        ! set to display NX and NY after CAL (default)
   CAL               ! calculate the optics of ring
-  dr;               ! draw ring
+!  dr;               ! draw ring
   Print[TimeUsed[]];! CPU Time used so far.
 !
 ! ***** CHROMATICITY CORRECTION *****
@@ -134,10 +135,10 @@ ON ECHO;OFF CTIME;
   ny[dp_]:=(DP0=dp;FFS["CALC"];Twiss["NY","***"]/2/Pi);
     !
     ! Plot tunes -3% < dp/p0 < 3%.
-  Plot[{nx[dp],ny[dp]}, {dp, -0.03, 0.03},
-    PlotLabel->"Tune Chromaticity",
-    FrameLabel->{{"`fD`np/p`d0`n","F   X X"},{"`fn`n`dx`n, `fn`n`dy`n","GX X  GX X"}}];
-                    ! draw chromaticity
+  ! Plot[{nx[dp],ny[dp]}, {dp, -0.03, 0.03},
+  !   PlotLabel->"Tune Chromaticity",
+  !   FrameLabel->{{"`fD`np/p`d0`n","F   X X"},{"`fn`n`dx`n, `fn`n`dy`n","GX X  GX X"}}];
+  !                   ! draw chromaticity
   If[$DisplayFunction === CanvasDrawer, Update[]];
   TYPE;             ! print out all elements
   PrintBeamLine[ExtractBeamLine[]];   ! print out all beam line
@@ -159,5 +160,136 @@ ON ECHO;OFF CTIME;
   ABORT             ! stop SAD.
 </PRE><HR>
 <H3><A NAME=result>Results:</A></H3><PRE>
+ *** Welcome to SAD Ver.1.1.6.7k64 built at 2019-08-05 10:37:11 +0900 ***
+ *** Today: 10:37:13 Monday 08/05/2019 ***
+ OFF LOG ECHO;READ 77 ;           1
+!
+! ***** DEFINITION OF ELEMENTS IN MAIN LEVEL *****
+!
+ ;
+ DRIFT  L1     = (L = 1)
+ ;
+ BEND   B      = (L = 2)
+ ;
+ QUAD   QF     = (L = 1 K1 =  0.1 )
+        QD     = (L = 1 K1 = -0.1 )
+        QSF    = (L = 1 K1 =  0.1 )
+        QSD    = (L = 1 K1 = -0.1 )
+        QRF    = (L = 1 K1 =  0.1 )
+        QRD    = (L = 1 K1 = -0.1 )
+ ;
+ SEXT   SF     =(L = 1 K2 = 0.1)
+        SD     =(L = 1 K2 = -0.2)
+ ;
+ MARK   IP1     =(BETAX = 10   BETAY =10    EMIX = 4.0E-7
+           EMIY = 4.0E-7  DP = 0.01 )
+ ;
+ CAVI   CA1 = (L = 1  VOLT=1 MV HARM=100)
+ ;
+!
+! ***** DEFINITION OF UNIT CELL IN MAIN LEVEL *****
+!
+!     You need at least one LINE to start FFS, but
+!     other lines can be created in FFS.
+!
+ ;
+ LINE   CELL = (IP1 QF L1 SF L1 B 3*L1 QD L1 SD L1 B 3*L1)
+ ;
+ FFS USE=CELL;
+ *** SADScript Initialization: /opt/src/SAD/GIT/fork/Packages/init.n ***
+ *** Run time Environment:     /opt/src/SAD/GIT/fork/Packages/init.local.n ***
+ RFSW RADCOD RAD  FLUC  INTRA POL   COD  DAPER EMIOU K64   FOURI SMEAR
+   F     F     F     T     F     F     T     F     F     T     F     T
+   Print[TimeUsed[]];! CPU Time used so far.
+.01972699910402298
+ !
+ ! Defining parameters:
+ !
+   nbends=24;        ! number of bends per ring
+   nxcell=0.25;      ! horizontal tune/cell
+   nycell=0.25;      ! vertical tune/cell
+   Print[TimeUsed[]];! CPU Time used so far.
+.01975500024855137
+ !
+ !  *****  UNIT CELL MATCHING  *****
+ !
+   CELL;             ! peridic condition
+   B 2*Pi/nbends;    ! settin bending angle to the BEND B
+   FIT;              ! set fit point at end of line
+   NX nxcell;        ! set fit condition NX
+   NY nycell;        ! set fit condition NY
+   FREE Q*;          ! set Q* (in this case QF and QD) as the matching
+                     ! variable
+   GO;               ! start matching
+ Iterations  Residual    Method     Reduction  Variables
+       2    4.3472E-03  (NEWTON)    1.000          2
+       3    1.6466E-07  (NEWTON)    1.000          2
+ Matched. ( 1.6175E-15) DP = 0.01000  DP0 = 0.00000  ExponentOfResidual = 2.0
+ OffMomentumWeight =   1.000
+$$$       f AX    #######  #  -1.496566 $$$       f BX    #######  #  23.647704
+$$$       f NX   .25       1    .250000 $$$       f AY    #######  #    .467389
+$$$       f BY    #######  #   6.097759 $$$       f NY   .25       1    .250000
+$$$       f LENG  #######  #  18.000000
+ !                     define dr as the drawing command (needs X-Window)
+ !  dr:=FFS["OUT 'a' DRAW BX BY & EX EY {BQ}*; TERM OUT; TDR 'a';"];
+   dr:=FFS["DRAW BX BY & EX EY {BQ}*;"];
+   dr;               ! draw optics of unit cell
+</PRE><IMG SRC="cell.png" WIDTH=500><PRE>
+... in ToReturnForm[Tcl[". cget -container ",1],Real]
+... in TclReturn[". cget -container ",Real]
+... in With[{l$=
+   TkPathName[ReturnToSAD[$Window]]//" cget"//TkOptionLabel[Container],
+  f$=TclReturnForm[Container,Window]},
+ ...
+... in WidgetValue[ReturnToSAD[$Window],#]&[Container]
+... in (WidgetValue[ReturnToSAD[$Window],#]&)/@
+ {Background,BG,Colormap,Container,Cursor,Height,HighlightBackground,
+  HighlightColor,HighlightThickness,TakeFocus,Visual,Width,BD,BorderWidth,
+ ...
+... in Widget[ReturnToSAD[$Window],Window[Root$Window]
+ ][CGet[Background,BG,Colormap,Container,Cursor,Height,HighlightBackground,
+  HighlightColor,HighlightThickness,TakeFocus,Visual,Width,BD,BorderWidth,
+ ...
+... in ReturnToSAD[$Window][CGet[##]]&[Background,BG,Colormap,Container,
+ Cursor,Height,HighlightBackground,HighlightColor,HighlightThickness,
+ TakeFocus,Visual,Width,BD,BorderWidth,Menu,Relief,Screen,Use]
+... in (ReturnToSAD[$Window][CGet[##]]&)@@Background
+... in Configure[Widget[ReturnToSAD[$Window],Window[Root$Window]]]
+... in If[1,
+ ReturnToSAD[$Window]:=Widget[ReturnToSAD[$Window],Window[Root$Window]];
+  Configure[ReturnToSAD[$Window]],
+ ...
+... in With[{a$=ReturnToSAD[$Window],np$=TkSymbol[ReturnToSAD[$Window]]},
+ SetWidgetInfo[a$,Root$Window,Window];DefineWidgetSpecific[Window,a$];
+  If[(Aspect|Client|Deiconify|FocusModel|Frame|Geometry|Grid|Group|Iconify|
+ ...
+... in ReturnToSAD[]
+... in If[1,ReturnToSAD[]]
+... in With[{p=ReturnToSAD},
+ Clear[ReturnToSAD];ReturnToSAD[]:=(ReturnToSAD[$Window]=Window[];
+    ReturnToSAD[$Window][Title]=StandardForm["SAD"//GetPID[]];
+ ...
+... in ToReturnForm[Tcl["winfo id .",1],Real]
+... in TclReturn["winfo id .",Real]
+... in StandardForm[TclReturn["winfo "//ToLowerCase[ID//" "]//
+   TkPathName[Root$Window],
+  WInfoReturnForm[ID]]]
+... in WidgetInformation[Widget[Root$Window,Null],ID]
+... in Module[{wl,al={},ids,id,an},
+ App$List={};wl=Third[XQueryTree[0]];Scan[(If["***"<=>
+       (ids=XGetTextProperty[#,FrameID$Atom])<=>Null,
+ ...
+... in AppNames[]
+... in Module[{wl,al={},ids,id,an},
+ App$List={};wl=Third[XQueryTree[0]];Scan[(If["***"<=>
+       (ids=XGetTextProperty[#,FrameID$Atom])<=>Null,
+ ...
+... in AppNames[]
+... in If[1,
+ KBF$Window=Canvas$Window;KBF$Frame=DefaultCanvas$Frame;KBF$AppBaseName=
+   "Canvas_3467";apnms$93=AppNames[];
+ ...
+... in Module[{{bm,wm,em,mb,defres}=
+   SwitchCases[Override[],{Main->_,WindowMenu->_,EditMenu->_,MenuBar->_,
 </PRE><HR>
 </BODY>

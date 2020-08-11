@@ -1,6 +1,7 @@
 FFS;
  SetDirectory[DocumentsDirectory];
- WriteHTML[f_,h_,ul_]:=Module[{},
+
+WriteHTML[f_,h_,ul_]:=Module[{},
    If[h[[1]]=="example",Return[]];
    If[ul<0,Write[f,"<LI>"]];
    nlabel=nlabel+1;
@@ -10,23 +11,37 @@ FFS;
      If[ul<=0,Write[f,"<UL>"]];
      Scan[WriteHTML[f,#,ul-1]&,h[[4]]];
      If[ul<=0,Write[f,"</UL>"]]]];
+     
  WriteHTMLIndex[f_,h_,tab_]:=Module[{tab1},
    If[h[[1]]=="example",Return[]];
    nlabel=nlabel+1;
-   Write[f,tab,"<A HREF=#L",nlabel,">",h[[1]],"</A>"];
+   Write[f,tab,"<A HREF=#L",nlabel," class=\"w3-button\">",h[[1]],"</A>"];
    If[Length[h[[4]]]>0,
-     tab1=tab//"   ";
-!     Write[f,"("];
-     Scan[WriteHTMLIndex[f,#,tab1]&,h[[4]]]
-!     Write[f,")"]
-     ]];
+   tab1=tab//"  ";
+   !     Write[f,"("];
+   Scan[WriteHTMLIndex[f,#,tab1]&,h[[4]]]
+   !     Write[f,")"]
+   ]];
 
  h=Help$Messages;
  h[[1,2]]="";
  f=OpenWrite["SADHelp.html"];
  Write[f,"\
-<HEAD>\n<TITLE>\n\
-</TITLE>\n</HEAD>\n<BODY>\n\
+<HEAD>\n\
+<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> \n\
+<link rel=\"stylesheet\" href=\"https://www.w3schools.com/w3css/4/w3.css\"> \n\
+<TITLE>\n\
+SAD Help web page\
+</TITLE>\n</HEAD>\n\
+<BODY>\n\
+<div class=\"w3-sidebar w3-light-grey w3-bar-block\" style=\"width:25%\">"
+];
+ nlabel=0;
+ Write[f,"<PRE>"];
+ Scan[WriteHTMLIndex[f,#,""]&, h[[1,4]]];
+ Write[f,"</PRE><HR/>"];
+ Write[f,"</div><div style=\"margin-left:25%\" class=\"w3-container\">"];
+Write[f,"\
 <CENTER><H2>Welcome to SAD/FFS & SADScript\n</H2></CENTER>\n\
 <PRE> SAD/FFS SADScript Version: ",Help$Version," Updated: ",Help$Update,"\n\n\
  The FFS commands are shown in uppercases. The minimum abbreviated form of each command is enclosed in (). Down to that form each command can be shorten. The optional arguments for the commands are usually enclosed in [].\n\
@@ -38,12 +53,8 @@ Back to SAD Home Page</H4>\n\
 SAD/FFS Examples</H4></A>\n\
 <HR>\n"];
  nlabel=0;
- Write[f,"<PRE>"];
-
- Write[f,"</PRE><HR>"];
- nlabel=0;
- WriteHTML[f,h[[1]],1];
- Write[f,"<HR>\n</BODY>"];
+ Scan[WriteHTML[f,#,1]&,h[[1,4]]];
+ Write[f,"<HR></div>\n</BODY>"];
  Close[f]
 !
  f=OpenWrite["../script/design_example.html"];

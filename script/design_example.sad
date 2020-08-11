@@ -61,8 +61,8 @@ ON ECHO;OFF CTIME;
   GO;               ! start matching
 !                     define dr as the drawing command (needs X-Window)
 !  dr:=FFS["OUT 'a' DRAW BX BY & EX EY {BQ}*; TERM OUT; TDR 'a';"];
-  dr:=FFS["DRAW BX BY & EX EY {BQ}*;"];
-  dr;               ! draw optics of unit cell
+ dr:=FFS["DRAW BX BY & EX EY {BQ}*;"];
+!  dr;               ! draw optics of unit cell
   SAVE;             ! save the matching result (values of QF, QD) to
                     ! keep them after swtch the beam line.
   Print[TimeUsed[]];! CPU Time used so far.
@@ -84,7 +84,7 @@ ON ECHO;OFF CTIME;
   Q*D MAX 0;        ! set the upper limit of K1 of QRD, QSD 
   FREE QS* QR*;
   GO; 
-  dr;               ! draw suppressor
+!  dr;               ! draw suppressor
   SAVE;
   Print[TimeUsed[]];! CPU Time used so far.
 !
@@ -98,7 +98,7 @@ ON ECHO;OFF CTIME;
   CELL;             ! now periodic condition again
 !  CAL NX NY;        ! set to display NX and NY after CAL (default)
   CAL               ! calculate the optics of ring
-  dr;               ! draw ring
+!  dr;               ! draw ring
   Print[TimeUsed[]];! CPU Time used so far.
 !
 ! ***** CHROMATICITY CORRECTION *****
@@ -118,10 +118,10 @@ ON ECHO;OFF CTIME;
   ny[dp_]:=(DP0=dp;FFS["CALC"];Twiss["NY","***"]/2/Pi);
     !
     ! Plot tunes -3% < dp/p0 < 3%.
-  Plot[{nx[dp],ny[dp]}, {dp, -0.03, 0.03},
-    PlotLabel->"Tune Chromaticity",
-    FrameLabel->{{"`fD`np/p`d0`n","F   X X"},{"`fn`n`dx`n, `fn`n`dy`n","GX X  GX X"}}];
-                    ! draw chromaticity
+  ! Plot[{nx[dp],ny[dp]}, {dp, -0.03, 0.03},
+  !   PlotLabel->"Tune Chromaticity",
+  !   FrameLabel->{{"`fD`np/p`d0`n","F   X X"},{"`fn`n`dx`n, `fn`n`dy`n","GX X  GX X"}}];
+  !                   ! draw chromaticity
   If[$DisplayFunction === CanvasDrawer, Update[]];
   TYPE;             ! print out all elements
   PrintBeamLine[ExtractBeamLine[]];   ! print out all beam line

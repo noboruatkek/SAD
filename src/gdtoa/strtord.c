@@ -1,1 +1,1 @@
-/Users/oide/SAD/oldsad/contrib/gdtoa/strtord.c
+/opt/src/SAD/GIT/fork/contrib/gdtoa/strtord.c

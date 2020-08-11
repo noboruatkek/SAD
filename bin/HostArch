@@ -13,7 +13,7 @@ processor=`uname -p 2>/dev/null`
 architecture=`uname -m 2>/dev/null`
 
 cpu_arch=unknown
-for symbol in processor architecture; do
+for symbol in architecture processor; do
     eval symbol="\$$symbol"
     case ${symbol} in
 	i[3456]86)

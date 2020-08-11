@@ -1,1 +1,1 @@
-/Users/oide/SAD/oldsad/contrib/gdtoa/smisc.c
+/opt/src/SAD/GIT/fork/contrib/gdtoa/smisc.c

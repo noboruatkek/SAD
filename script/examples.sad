@@ -39,16 +39,16 @@ APERT A1=(DX1=0.001 DY1=0.001 DX1=-0.001 DY1=-0.001 JDPX=0.001 JDPY=0.001)
  norfsw cell cal
     Print[{MemoryCheck[1],TimeUsed[]}];
 !
-!  TclWidget
-   Print[">>>>>>>>>>",#,"<<<<<<<<<"]&["TclWidget"];
-   Tk$Echo=1;
-   w=Window[Title->"Test"];
-   b=Button[w,Text->"abc"];
-   b[Update];
-   TkWait[];
-   TclWidget[b,"configure",Text->"def"];
-   b[Update];
-! end
+! !  TclWidget
+!    Print[">>>>>>>>>>",#,"<<<<<<<<<"]&["TclWidget"];
+!    Tk$Echo=1;
+!    w=Window[Title->"Test"];
+!    b=Button[w,Text->"abc"];
+!    b[Update];
+!    TkWait[];
+!    TclWidget[b,"configure",Text->"def"];
+!    b[Update];
+! ! end
 !
 !
    Print[">>>>>>>>>>",#,"<<<<<<<<<"]&["Def_func"];
@@ -103,146 +103,146 @@ APERT A1=(DX1=0.001 DY1=0.001 DX1=-0.001 DY1=-0.001 JDPX=0.001 JDPY=0.001)
      measy=Table[GaussRandom[],{4}]*0.001;
      Scan[FFS["FIT "//#[[1]]//" DX "//#[[2]]]&,Thread[{qname,measx}]];
      Scan[FFS["FIT "//#[[1]]//" DY "//#[[2]]]&,Thread[{qname,measy}]];
-     plotorbit);
+!     plotorbit);
 !-----fit orbit to measured data----------------------
    fitorbit:=(
      Check[FFS[" FREE B*.* K0;GO"],];
-     plotorbit);
+!     plotorbit);
 !-----reset correctors to zero------------------------
    resetcorr:=(
      Check[FFS["B*.* K0 0;CAL"],];
-     plotorbit);
-!-----reject clicked BPMs (imperfect)-----------------
-   rejdata:=Module[{ev={Widget,Tag,X,Y}/.$Event,w,tag,x,y},
-     {w,tag,x,y}=ev;
-     sx=(x-Canvas$Offset[[1]])/Canvas$Scale[[1]];
-     m=Catch[Do[If[Abs[LINE["S",qname[i]]-sx]<0.5,Throw[qname[i]]],
-       {i,Length[qname]}];""];
-     Print[m,x,y];
-     If[m<>"",
-       r=If[y>300,"DY","DX"];
-       FFS["FIT "//m//" REJ "//r];
-       ConfigureWidget[w,AddTag$Closest->{"$rej",x,y}];
-       ConfigureWidget[w,ItemConfigure->{"$rej",Fill->"red"}]]];
-!
-!  Defining Widgets
-!
-   w=Window[Title->"Test"];
-   c=Canvas[w,Width->936,Height->550];
-   fr=Frame[w,BD->0,BG->"#ffffd0",Relief->"sunken",
-     Side->"right",Height->150];
-   meas=Button[fr,Text->"MEAS",BG->"yellow",Side->"left"];   cal=Button[fr,Text->"CAL",BG->"blue",FG->"white",Side->"left"];
-   set=Button[fr,Text->"SET",BG->"red",FG->"white",Side->"left"];
-   reset=Button[fr,Text->"RESET",BG->"green",Side->"left"];
-!
-!  Assign commands to buttons
-!
-   Tk$Echo=1;
-   meas[Command]:=measdata;
-   cal[Command]:=fitorbit;
-   reset[Command]:=resetcorr;
-   BindWidget[c,"<Button>",rejdata];
-   Tk$Echo=0;
-!
-!  Plot betas and orbits by OpticsPlot
-!
-   $DisplayFunction=CanvasDrawer;
-   Canvas$Widget=c;
-   Canvas$WindowOffset={0,1.5};
-   MemoryCheck[]
-   g=Timing[measdat]
-   c[Update]
-   w[Raise];
-   AdjustWindowGeometry[w];
-   TkWait[]
-! end
-!
-   Print[">>>>>>>>>>",#,"<<<<<<<<<"]&["SAD Tkinter"];
-!   Tk$Echo=-1;
+!     plotorbit);
+! !-----reject clicked BPMs (imperfect)-----------------
+!    rejdata:=Module[{ev={Widget,Tag,X,Y}/.$Event,w,tag,x,y},
+!      {w,tag,x,y}=ev;
+!      sx=(x-Canvas$Offset[[1]])/Canvas$Scale[[1]];
+!      m=Catch[Do[If[Abs[LINE["S",qname[i]]-sx]<0.5,Throw[qname[i]]],
+!        {i,Length[qname]}];""];
+!      Print[m,x,y];
+!      If[m<>"",
+!        r=If[y>300,"DY","DX"];
+!        FFS["FIT "//m//" REJ "//r];
+!        ConfigureWidget[w,AddTag$Closest->{"$rej",x,y}];
+!        ConfigureWidget[w,ItemConfigure->{"$rej",Fill->"red"}]]];
+! !
+! !  Defining Widgets
+! !
+!    w=Window[Title->"Test"];
+!    c=Canvas[w,Width->936,Height->550];
+!    fr=Frame[w,BD->0,BG->"#ffffd0",Relief->"sunken",
+!      Side->"right",Height->150];
+!    meas=Button[fr,Text->"MEAS",BG->"yellow",Side->"left"];   cal=Button[fr,Text->"CAL",BG->"blue",FG->"white",Side->"left"];
+!    set=Button[fr,Text->"SET",BG->"red",FG->"white",Side->"left"];
+!    reset=Button[fr,Text->"RESET",BG->"green",Side->"left"];
+! !
+! !  Assign commands to buttons
+! !
+!    Tk$Echo=1;
+!    meas[Command]:=measdata;
+!    cal[Command]:=fitorbit;
+!    reset[Command]:=resetcorr;
+!    BindWidget[c,"<Button>",rejdata];
+!    Tk$Echo=0;
+! !
+! !  Plot betas and orbits by OpticsPlot
+! !
+!    $DisplayFunction=CanvasDrawer;
+!    Canvas$Widget=c;
+!    Canvas$WindowOffset={0,1.5};
+!    MemoryCheck[]
+!    g=Timing[measdat]
+!    c[Update]
+!    w[Raise];
+!    AdjustWindowGeometry[w];
+!    TkWait[]
+! ! end
+! !
+!    Print[">>>>>>>>>>",#,"<<<<<<<<<"]&["SAD Tkinter"];
+! !   Tk$Echo=-1;
    
-   Dialog[mess_,buttons_]:=Module[{w1,b,m,f,wf,r},
-     w1=Window[Title->"Dialog",OverrideRedirect->True,
-       Geometry->"+400+300"];
-     wf=Frame[w1,BorderWidth->3,Relief->"ridge"];
-     m=TextLabel[wf,Text->mess,PadX->10,PadY->5];
-     f=Frame[wf];
-     Scan[With[{x=#},b[x]=Button[f,Text->#,Side->"left",PadX->10,
-       Command:>TkReturn[x]]]&,buttons];
-     r=TkWait[];
-     TracePrint[DeleteWidget[w1]];
-     r];
+!    Dialog[mess_,buttons_]:=Module[{w1,b,m,f,wf,r},
+!      w1=Window[Title->"Dialog",OverrideRedirect->True,
+!        Geometry->"+400+300"];
+!      wf=Frame[w1,BorderWidth->3,Relief->"ridge"];
+!      m=TextLabel[wf,Text->mess,PadX->10,PadY->5];
+!      f=Frame[wf];
+!      Scan[With[{x=#},b[x]=Button[f,Text->#,Side->"left",PadX->10,
+!        Command:>TkReturn[x]]]&,buttons];
+!      r=TkWait[];
+!      TracePrint[DeleteWidget[w1]];
+!      r];
 
 
-   ww=Window[Title->"Test"];
-   w=Frame[ww];
+!    ww=Window[Title->"Test"];
+!    w=Frame[ww];
 
-   time=DateString;
-   a=Button[w,TextVariable:>time];
-   b=Button[w,Text->"Dialog"];
-   tr=1;
-   echo=CheckButton[w,Text->"Echo",Variable:>tr];
-   a[Command]:=TkReturn[1];
-   b[Command]:=Print[Dialog["Do you really want to do this?",{"OK","Cancel"}]];
-   echo[Command]:=(Tk$Echo=tr);
-   mess=Message[w,Width->100,
-     Text->"Try Menu below to see Menu and Cascade."];
-   mb=MenuButton[w,Text->"Menu"];
-   menu=Menu[mb];
-   menu1=Menu[menu,
-     Add->{Button[Text->"Abort",Command:>FFS["abort"]]}];
-   menu[Add]={Button[Text->"CAL",Command:>FFS["CAL",6]],
-     Separator[],
-     Cascade[Text->"Cascade",Font->TextFont["Times","bold",14],
-       Menu:>menu1],
-     Separator[],
-     CheckButton[Text->"RFSW",Variable:>rfsw],
-     Separator[],
-     RadioButton[Text->"HER",Value->1,Variable:>ring],
-     RadioButton[Text->"LER",Value->2,Variable:>ring]};
-   mb[Menu]:=menu;
-   sc=Scale[w,From->-3,To->3,TickInterval->2,
-     Variable:>scv,Digits->1,Resolution->0.01,BigIncrement->1,
-     Orient->"horizontal",Length->200,Label->"Scale"];
-   While[TkSense[]===Null,time=DateString];
-   Print[Tk$Result];
+!    time=DateString;
+!    a=Button[w,TextVariable:>time];
+!    b=Button[w,Text->"Dialog"];
+!    tr=1;
+!    echo=CheckButton[w,Text->"Echo",Variable:>tr];
+!    a[Command]:=TkReturn[1];
+!    b[Command]:=Print[Dialog["Do you really want to do this?",{"OK","Cancel"}]];
+!    echo[Command]:=(Tk$Echo=tr);
+!    mess=Message[w,Width->100,
+!      Text->"Try Menu below to see Menu and Cascade."];
+!    mb=MenuButton[w,Text->"Menu"];
+!    menu=Menu[mb];
+!    menu1=Menu[menu,
+!      Add->{Button[Text->"Abort",Command:>FFS["abort"]]}];
+!    menu[Add]={Button[Text->"CAL",Command:>FFS["CAL",6]],
+!      Separator[],
+!      Cascade[Text->"Cascade",Font->TextFont["Times","bold",14],
+!        Menu:>menu1],
+!      Separator[],
+!      CheckButton[Text->"RFSW",Variable:>rfsw],
+!      Separator[],
+!      RadioButton[Text->"HER",Value->1,Variable:>ring],
+!      RadioButton[Text->"LER",Value->2,Variable:>ring]};
+!    mb[Menu]:=menu;
+!    sc=Scale[w,From->-3,To->3,TickInterval->2,
+!      Variable:>scv,Digits->1,Resolution->0.01,BigIncrement->1,
+!      Orient->"horizontal",Length->200,Label->"Scale"];
+!    While[TkSense[]===Null,time=DateString];
+!    Print[Tk$Result];
 
-   TracePrint[a=Button[w,Text->"Return"]];
-   b=Button[w,TextVariable:>btext]
-   btext="CAL";
-   b[Command]:=FFS["cal",6];
-   a[FG]="blue";
-   a
-   a[Text]="OK";
-   a
-   d[1]=Window[Title->"test1"];
-   c[1]=Button[d[1],Text->"ccc",TextVariable:>c1text];
-   cb1=CheckButton[d[1],Text->"First",Variable:>first]
-   cb2=CheckButton[d[1],Text->"Second",Variable:>second]
-   fr1=Frame[d[1]];
-   tl=TextLabel[fr1,TextVariable:>tltext,Side->"left"];
-   ent=Entry[fr1,Width->10,TextVariable:>enttext,Side->"left"];
-   rbvar=1;
-   rb1=RadioButton[d[1],Text->"abc",Value->1,Variable:>rbvar];
-   rb2=RadioButton[d[1],Text->"def",Value->2,Variable:>rbvar];
-   fr2=Frame[w];
-   vsb=ScrollBar[fr2,Orient->"vertical",Side->"right",Fill->"y"];
-   lb=ListBox[fr2,Insert->{"end",Sort[Take[Names["*"],50]]},BG->"white",
-     SelectMode->"extended",YScrollCommand:>vsb[Set]];
-   vsb[Command]:=lb[YView];
-   AdjustWindowGeometry[w];
+!    TracePrint[a=Button[w,Text->"Return"]];
+!    b=Button[w,TextVariable:>btext]
+!    btext="CAL";
+!    b[Command]:=FFS["cal",6];
+!    a[FG]="blue";
+!    a
+!    a[Text]="OK";
+!    a
+!    d[1]=Window[Title->"test1"];
+!    c[1]=Button[d[1],Text->"ccc",TextVariable:>c1text];
+!    cb1=CheckButton[d[1],Text->"First",Variable:>first]
+!    cb2=CheckButton[d[1],Text->"Second",Variable:>second]
+!    fr1=Frame[d[1]];
+!    tl=TextLabel[fr1,TextVariable:>tltext,Side->"left"];
+!    ent=Entry[fr1,Width->10,TextVariable:>enttext,Side->"left"];
+!    rbvar=1;
+!    rb1=RadioButton[d[1],Text->"abc",Value->1,Variable:>rbvar];
+!    rb2=RadioButton[d[1],Text->"def",Value->2,Variable:>rbvar];
+!    fr2=Frame[w];
+!    vsb=ScrollBar[fr2,Orient->"vertical",Side->"right",Fill->"y"];
+!    lb=ListBox[fr2,Insert->{"end",Sort[Take[Names["*"],50]]},BG->"white",
+!      SelectMode->"extended",YScrollCommand:>vsb[Set]];
+!    vsb[Command]:=lb[YView];
+!    AdjustWindowGeometry[w];
    
-   cb1[Command]:=(tltext="First: ");
-   cb2[Command]:=(tltext="Second: ");
+!    cb1[Command]:=(tltext="First: ");
+!    cb2[Command]:=(tltext="Second: ");
 
-   a[Focus$Set];
-   BindWidget[a,"<Enter>",Print["OK"]];
-   BindWidget[a,"<Key-a>",Print["OK"]];
-   BindWidget[a,"<KeyRelease>",Print["OK"]];
-   BindWidget[a,"<ButtonRelease>",Print["OK"]];
-   BindWidget[a,"<Leave>",Print["OK"]];
-   BindWidget[a,"<Motion>",Print["OK"]];
-   BindWidget[a,"<Button-2>",Print["OK"]];
-   TkEventLoop[];
+!    a[Focus$Set];
+!    BindWidget[a,"<Enter>",Print["OK"]];
+!    BindWidget[a,"<Key-a>",Print["OK"]];
+!    BindWidget[a,"<KeyRelease>",Print["OK"]];
+!    BindWidget[a,"<ButtonRelease>",Print["OK"]];
+!    BindWidget[a,"<Leave>",Print["OK"]];
+!    BindWidget[a,"<Motion>",Print["OK"]];
+!    BindWidget[a,"<Button-2>",Print["OK"]];
+!    TkEventLoop[];
 
 ! end
 !

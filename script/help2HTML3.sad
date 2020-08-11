@@ -2,7 +2,7 @@ FFS;
 
  EquAlign[t_,_]:="::<"//t//">::";
 
- Help2HTML=Class[{},{},{help=Help$Messages,nlabel=0,Labels,col=96,
+ Help2HTML=Class[{},{},{help=Help$Messages,nlabel=0,Labels,col=88,
    lt,ltt,form="svg",svg,outf,pw="16 cm"},
 
    Constructor[]:=(
@@ -13,9 +13,9 @@ FFS;
      outf[_]=Undefined;
      lt=LaTeX[style->"align",pt->11,margins->"'3 3 3 0'",dpi->120];
      ltt=LaTeX[style->"text",pt->11,margins->"'3 3 3 0'",dpi->120]
-     );
+   );
 
-     SelfIndent[in_]:=Module[{f=StringToStream[in],r,ind,tab,con,w,p,r1},
+   SelfIndent[in_]:=Module[{f=StringToStream[in],r,ind,tab,con,w,p,r1},
        r=Table[s=ReadString[f];
          If[s===EndOfFile,Close[f];Break[]];
          StringTrim[s],
@@ -154,11 +154,11 @@ FFS;
      WriteHTMLIndex[f_,h_,tab_]:=Module[{tab1,lab,h1=h[[1]]},
        If[h1=="example",Return[]];
        nlabel=nlabel+1;
-       lab="<A HREF=#L"//nlabel//">"//h1//"</A>";
+       lab="<A HREF=#L"//nlabel//" class=\"w3-button menu.L"//Length[tab]//"\">"//h1//"</A>";
        Scan[SetLabel[#,lab]&,LabelTitle[h1]];
        Write[f,tab,lab];
        If[Length[h[[4]]]>0,
-         tab1=tab//"   ";
+         tab1=tab//"  ";
 !     Write[f,"("];
          Scan[WriteHTMLIndex[f,#,tab1]&,h[[4]]]
 !     Write[f,")"]
@@ -180,25 +180,33 @@ eqs img{\n\
   font-size:0;\n\
 }\n\
 </STYLE>\n\
-</HEAD>\n<BODY>\n\
+<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> \n\
+<link rel=\"stylesheet\" href=\"https://www.w3schools.com/w3css/4/w3.css\"> \n\
+\n</HEAD><BODY>\n"];
+Write[f,"<div class=\"w3-sidebar w3-light-grey w3-bar-block\" style=\"width:20%\"><PRE>"];
+Scan[HH@WriteHTMLIndex[f,#,""]&,HH@help[[1,4]]];
+Write[f,"</PRE><HR/></div>\n"]
+Write[f,"<div style=\"margin-left:22%\" class=\"\">"];
+Write[f,"\
 <CENTER><H2>Welcome to SAD/FFS & SADScript\n</H2></CENTER>\n\
-<CENTER> SAD/FFS SADScript Version: ",Help$Version,",      Updated: ",Help$Update,"</CENTER>\n\n",
+<CENTER> SAD/FFS SADScript Version: ",
+Help$Version,
+",      Updated: ",
+Help$Update,
+"</CENTER>\n\n",
 "<PRE>"//HH@WrapLine[" Please use browser's search to find out an item.\n\n\
  The FFS commands are shown in uppercases. The minimum abbreviated form of each command is enclosed in (). Each command can be shorten down to that. The optional arguments for the commands are usually shown in [].\n\
- The notation ===> reads \"equivalent to\" below.",HH@col]//"\
+",HH@col]//"\
 </PRE>\n\
 <A HREF=\"http://acc-physics.kek.jp/SAD/\">\n<H4>\n\
 <img SRC=\"SADHelp_img/SAD.jpg\" ALIGN=\"middle\" ALT=\"SAD\" WIDTH=90></A>\n\
 Back to SAD Home Page</H4>\n\
 <A HREF=\"example/design_example.html\">\n<H4>\n\
 SAD/FFS Examples</H4></A>\n\
-<HR>\n"];
- Write[f,"<PRE>"];
- HH@WriteHTMLIndex[f,HH@help[[1]],""];
- Write[f,"</PRE><HR>"];
+<HR/>\n"];
  HH@nlabel=0;
- HH@WriteHTML[f,HH@help[[1]],1];
- Write[f,"<HR>\n</BODY>"];
+ Scan[HH@WriteHTML[f,#,1]&,HH@help[[1,4]]];
+ Write[f,"<HR/>\n</div></BODY>"];
  Close[f]
 
 (*

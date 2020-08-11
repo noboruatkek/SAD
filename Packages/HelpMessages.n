@@ -587,9 +587,8 @@ with\n\n"//EquAlign["H(x,p_x,y,p_y,z,p)=(-\\sqrt{p^2-p_x^2-p_y^2}+1-E/v_0){\\tt 
 
       {"APERT",
        "\
-An aperture. Only valid in tracking. A particle with\n\n"//
-EquAlign["&\\frac{(x-{\\tt DX})^2}{{\\tt AX}^2}+\\frac{(y-{\\tt DY})^2}{{\\tt AY}^2}<1\\\\\
- \\&\\&\\ &\\min({\\tt DX1},{\\tt DX2})<x<\\max({\\tt DX1},{\\tt DX2})\\\\\
+An aperture. Only valid in tracking. A particle with\n\n"//EquAlign["&\\frac{(x-{\\tt DX})^2}{{\\tt AX}^2}+\\frac{(y-{\\tt DY})^2}{{\\tt AY}^2}<1\\\\\n\
+ \\&\\&\\ &\\min({\\tt DX1},{\\tt DX2})<x<\\max({\\tt DX1},{\\tt DX2})\\\\\n\
  \\&\\&\\ &\\min({\\tt DY1},{\\tt DY2})<y<\\max({\\tt DY1},{\\tt DY2})",
 "\
    (x - DX)^2/AX^2 + (y - DY)^2/AY^2 < 1\n\
@@ -973,10 +972,10 @@ The transformation in a QUAD is a sequence of:\n\n\
 
           SEXT$trans[name_,pole_,n_]:=EquAlign["Text[\
 The transformation of a {\\tt "//name//"} is given as\n\
-\\begin{align}\n\
+\\begin{align}\\begin{split}\n\
    &\\exp(:F_{\\rm in}:)\\exp(:a {\\tt L}:)\\exp(:H_"//n//"/2:)\\exp(:b {\\tt L}:)\\\\\n\
    \\times&\\exp(:V_"//n//":)\\exp(:a {\\tt L}:)\\exp(:H_"//n//"/2:)\\exp(:b {\\tt L}:)\\exp(:F_{\\rm out}:)\\  ,\n\
-\\end{align}\n\
+\\end{split}\\end{align}\n\
 where {\\tt L} and $H_"//n//"$ are the Hamiltonians of a drift of length {\\tt L} and a thin "//
 pole//"pole kick with integrated strength {\\tt K"//n//"}:\n\
 \\begin{align}\n\
@@ -4466,10 +4465,10 @@ Such reference lines can be discontinuous at some locations such as an end of ti
     {"Lagrangean",
      EquAlign["Text[\
 The primary position variables are $(x,y,s)$, where $x$ and $y$ are the displacements along the normal and binormal vectors, ${\\bm n}$ and ${\\bm b}$, respectively. Let ${\\bm t}$ denote the tangential vector along $s$, then ${\\bm n}$, ${\\bm b}$, ${\\bm t}$ consist a right-handed system.\\\\\n\
-The action in $t$ is expressed by\n\
+The action[Eq. \\(\\eqref{eq:action}\\)] in $t$ is expressed by\n\
 \\begin{align}\n\
-S=&\\int L_tcdt\\ ,\\\\\n\
-L_t=&-\\frac{mc}{p_0}\\sqrt{1-\\dot x^2+\\dot y^2+(1+x/\\rho)^2\\dot s^2}+a_x\\dot x+a_y\\dot y+(1+x/\\rho)a_s\\dot s\\ ,\n\
+S=&\\int L_tcdt\\ ,\\label{eq:action}\\\\\n\
+L_t=&-\\frac{mc}{p_0}\\sqrt{1-\\dot x^2+\\dot y^2+(1+x/\\rho)^2\\dot s^2}+a_x\\dot x+a_y\\dot y+(1+x/\\rho)a_s\\dot s\\ ,\\label{eq:Lagrangian}\n\
 \\end{align}\n\
 where $p_0$ and $(a_x,a_y,a_z)=e(A_x,A_y,A_z)/p_0$ are the design momentum and the normalized vector potentials, respectively, and $\\dot\\ $ denotes the derivative by $ct$. Currently SAD dose not handle the electrostatic potential.\\\\\n\
 As SAD uses $s$ for the independent variable instead of $t$, the Lagrangean $L$ for $s$ is written as\n\

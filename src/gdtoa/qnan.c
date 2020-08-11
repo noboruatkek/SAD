@@ -1,1 +1,1 @@
-/Users/oide/SAD/oldsad/contrib/gdtoa/qnan.c
+/opt/src/SAD/GIT/fork/contrib/gdtoa/qnan.c

@@ -60,15 +60,17 @@ LaTeX=Class[{},{eqn=0,pre0="\
         Write[f,text,"\n"];
         Write[f,Postamble[style]];
         Close[f];
-        If[System["pdflatex "//fn//" "//pdf//" > /dev/null"],
+        If[System["pdflatex "//fn//" "//pdf//" > /dev/null"] == 0,
           System["pdfcrop --margins "//margins//" "//pdf//" "//pdf//" > /dev/null"];
           Switch[form,
             "svg",
             System["pdf2svg "//pdf//" "//out//" > /dev/null"];
-            System["svgcleaner --quiet "//out//" "//out//" > /dev/null"],
+	    If[ System["which svgcleaner"] == 0,
+                System["svgcleaner --quiet "//out//" "//out//" > /dev/null"]
+	    ],
             _,
             System["convert -density "//dpi//" "//pdf//" "//out//" > /dev/null"]];
-          System["rm "//fn//" "//fn//".tex "//fn//".log "//fn//".aux "//pdf]
+	    !System["rm "//fn//" "//fn//".tex "//fn//".log "//fn//".aux "//pdf]
           ];
         SetDirectory[dir];
         out]]];

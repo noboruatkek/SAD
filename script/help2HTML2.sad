@@ -122,8 +122,19 @@ FFS;
 
  f=OpenWrite["SADHelp.html"];
  Write[f,"\
-<HEAD>\n<TITLE>\n\
-</TITLE>\n</HEAD>\n<BODY>\n\
+<HEAD>\n\
+<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> \n\
+<link rel=\"stylesheet\" href=\"https://www.w3schools.com/w3css/4/w3.css\"> \n\
+<TITLE>\n\
+</TITLE>\n\
+</HEAD>\n<BODY>\n\
+<div class=\"w3-sidebar w3-light-grey w3-bar-block\" style=\"width:25%\">"
+];
+ Write[f,"<PRE>"];
+ Scan[HH@WriteHTMLIndex[f,#,""]&,HH@help[[1,4]]];
+ Write[f,"</PRE><HR>"];
+ Write[f,"</div><div style=\"margin-left:25%\" class=\"w3-container\">"];
+ Write[f,"\
 <CENTER><H2>Welcome to SAD/FFS & SADScript\n</H2></CENTER>\n\
 <CENTER> SAD/FFS SADScript Version: ",Help$Version,",      Updated: ",Help$Update,"</CENTER>\n\n",
 "<PRE>"//HH@WrapLine[" Please use browser's search to find out an item.\n\n\
@@ -136,14 +147,10 @@ Back to SAD Home Page</H4>\n\
 <A HREF=\"example/design_example.html\">\n<H4>\n\
 SAD/FFS Examples</H4></A>\n\
 <HR>\n"];
- Write[f,"<PRE>"];
- HH@WriteHTMLIndex[f,HH@help[[1]],""];
- Write[f,"</PRE><HR>"];
  HH@nlabel=0;
- HH@WriteHTML[f,HH@help[[1]],1];
- Write[f,"<HR>\n</BODY>"];
+ Scan[HH@WriteHTML[f,#,1]&, HH@help[[1,4]]];
+ Write[f,"<HR/>\n</BODY>"];
  Close[f]
-
 !
  f=OpenWrite["../script/design_example.html"];
  fr=OpenRead[ExamplesDirectory//"design_example.sad.result"];

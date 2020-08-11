@@ -1,1 +1,1 @@
-/Users/oide/SAD/oldsad/contrib/gdtoa/test/Qtest.c
+/opt/src/SAD/GIT/fork/contrib/gdtoa/test/Qtest.c
