@@ -5,7 +5,7 @@
       implicit none
       type (sad_comp), pointer :: cmp
       integer*4 ,intent(in):: nvar
-      integer*4 i,ie,iv,j,ii,ie1,nv,is
+      integer*4 i,ie,iv,j,ii,ie1,is
       if(nvar .gt. 0)then
         do i=1,nlat-1
           call compelc(i,cmp)
@@ -86,11 +86,8 @@ c                cmp%update=cmp%nparam .le. 0
         if(k .eq. 0)then
           k=nelvx(ie)%klp
         endif
-        if(iv .eq. nelvx(ie)%ival)then
-          nvevx(i)%valvar=tfvalvar(k,iv)/errk(1,k)
-        else
-          nvevx(i)%valvar=tfvalvar(k,iv)
-        endif
+        nvevx(i)%valvar=merge(tfvalvar(k,iv)/errk(1,k),
+     $       tfvalvar(k,iv),iv .eq. nelvx(ie)%ival)
       enddo
       return
       end
@@ -107,7 +104,7 @@ c                cmp%update=cmp%nparam .le. 0
       integer*4 i,ie,j,irtc,ie1,ntv,k
       ite=0
       ntv=0
-      do concurrent (j=1:flv%ntouch)
+      do j=1,flv%ntouch
         if(nelvx(nvevx(j)%itouchele)%ival .ne. nvevx(j)%itouchv)then
           ntv=ntv+1
           itv(ntv)=j
@@ -204,6 +201,7 @@ c                cmp%update=cmp%nparam .le. 0
       subroutine tffscoupledvar(irtc)
       use tfstk
       use tfcsi, only:icslfno
+      use eeval
       implicit none
       integer*4 ,intent(out):: irtc
       integer*4 ia,itfdownlevel,irtc1
@@ -226,7 +224,7 @@ c                cmp%update=cmp%nparam .le. 0
         return
       endif
       levele=levele+1
-      call tfsyeval(ifsetcoup,kx,irtc)
+      kx=tfsyeval(ifsetcoup,irtc)
       if(irtc .ne. 0)then
         if(irtc .gt. 0)then
           if(ierrorprint .ne. 0)then

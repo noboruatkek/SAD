@@ -3,8 +3,11 @@
       use eexpr
       use efun
       implicit none
-      type (sad_descriptor) k1,k2,kx
-      integer*4 irtc,iopc1,isp1
+      type (sad_descriptor) ,intent(in):: k1,k2
+      type (sad_descriptor) kx
+      integer*4 ,intent(in):: iopc1
+      integer*4 ,intent(out):: irtc
+      integer*4 isp1
       select case (iopc1)
       case (mtfrevpower)
         kx=tfeval1(k2,k1,mtfpower,irtc)
@@ -15,16 +18,16 @@
      $       mtfalt,mtfrepeated,mtfrepeatednull)
         kx=tfeexpr(k1,k2,iopc1)
         irtc=0
-      case (mtfnull:mtfdiv,mtfpower,mtfgreater:mtfleq,mtfnot:mtfor,
-     $       mtfleftbra:mtfrightbrace,mtfcomplex:mtfcomma,
-     $       mtfdot,mtfend)
+      case (mtfnull:mtfdiv,mtfpower,mtfgreater:mtfless,mtfand:mtfnot,
+     $       mtfleftbra:mtfrightbrace,
+     $       mtfcomplex:mtfcomma,mtfdot,mtfend)
         if(tfnumberq(k2) .and.
      $     (tfnumberq(k1) .or. iopc1 .eq. mtfnot))then
-          call tfcmplx(k1,k2,kx,iopc1,irtc)
+          kx=tfcmplx(k1,k2,iopc1,irtc)
           return
         endif
         if(tflistq(k2) .or. tflistq(k1))then
-          call tfearray(k1,k2,kx,iopc1,irtc)
+          kx=tfearray(k1,k2,iopc1,irtc)
         else
           kx=tfeexpr(k1,k2,iopc1)
           irtc=0
@@ -45,10 +48,12 @@
 
       subroutine tfflagordef(isp1,kx,irtc)
       use tfstk
-      type (sad_descriptor) kx
+      type (sad_descriptor) ,intent(out):: kx
       type (sad_symbol), pointer :: sym
       type (sad_string), pointer :: str
-      integer*4 isp1,irtc,nc
+      integer*4 ,intent(out):: irtc
+      integer*4 ,intent(in):: isp1
+      integer*4 nc
       real*8 vx,fflogi
       logical*4 exist
       character*8 name
@@ -62,6 +67,7 @@
         name(1:nc)=str%str(1:nc)
         call capita(name(1:nc))
         vx=fflogi(name(1:nc),exist)
+c        write(*,*)'flagordef-vx ',exist,vx,'"'//name(1:nc)//'"'
         if(exist)then
           kx=dfromr(vx)
           irtc=0
@@ -76,6 +82,7 @@
 
       function tfeval1to(k1,k2,iopc,old,irtc) result(kx)
       use tfstk
+      use eeval
       implicit none
       type (sad_descriptor) ,intent(in):: k1,k2
       type (sad_descriptor) kx,kv,kr,ku,ks,tfeval1,tfset1
@@ -84,17 +91,17 @@
       integer*4 ,intent(out):: irtc
       logical*4 ,intent(in):: old
       if(ktflistq(k1,kl1))then
-        call tfleval(kl1,kv,.true.,irtc)
+        kv=tfleval(kl1,.true.,irtc)
         if(irtc .ne. 0)then
           return
         endif
       elseif(ktfsymbolq(k1))then
-        call tfsyeval(k1,kv,irtc)
+        kv=tfsyeval(k1,irtc)
         if(irtc .ne. 0)then
           return
         endif
       elseif(ktfpatq(k1))then
-        call tfpateval(k1,kv,irtc)
+        kv=tfpateval(k1,irtc)
         if(irtc .ne. 0)then
           return
         endif
@@ -121,7 +128,7 @@
       if(irtc .ne. 0)then
         return
       endif
-      call tfeevaldef(k1,ks,irtc)
+      ks=tfeevaldef(k1,irtc)
       if(irtc .ne. 0)then
         return
       endif
@@ -136,12 +143,16 @@
       use tfstk
       use efun
       use eexpr
+      use eeval
       implicit none
-      type (sad_descriptor) kx,k10,kr,k1
+      type (sad_descriptor) ,intent(out):: kx
+      type (sad_descriptor) k10,kr,k1
       type (sad_dlist), pointer :: kl
       integer*2, parameter :: nextra = int2(8)
       integer*8 kp
-      integer*4 isp1,irtc,itfmessage,isp0,mode
+      integer*4 ,intent(in):: isp1,mode
+      integer*4 ,intent(out):: irtc
+      integer*4 itfmessage,isp0
       logical*4 def,tfgetstoredp,ev
       if(isp .ne. isp1+2)then
         irtc=itfmessage(9,'General::narg','"2"')
@@ -162,7 +173,7 @@
         endif
         if(ktflistq(k10,kl))then
           if(kl%head%k .eq. ktfoper+mtfpart)then
-            call tfleval(kl,kx,.false.,irtc)
+            kx=tfleval(kl,.false.,irtc)
             if(irtc .ne. 0)then
               return
             endif
@@ -171,7 +182,7 @@
             return
           endif
         endif
-        call tfeevalref(k10,k1,irtc)
+        k1=tfeevalref(k10,irtc)
         if(irtc .ne. 0)then
           return
         endif
@@ -179,11 +190,7 @@
           irtc=itfmessage(9,'General::wrongtype','"List"')
           return
         endif
-        if(mode .eq. 1)then
-          kr=tfappend(k1,dtastk(isp),.true.,0,irtc)
-        else
-          kr=tfappend(k1,dtastk(isp),.true.,1,irtc)
-        endif
+        kr=tfappend(k1,dtastk(isp),.true.,merge(0,1,mode .eq. 1),irtc)
         if(irtc .ne. 0)then
           return
         endif
@@ -202,13 +209,18 @@
 
       subroutine tfappendto1(kp,k2,kr,mode,eval,irtc)
       use tfstk
+      use eeval
       implicit none
-      type (sad_descriptor) k1,k2,kr
+      type (sad_descriptor) ,intent(in):: k2
+      type (sad_descriptor) ,intent(out):: kr
+      type (sad_descriptor) k1
       type (sad_dlist), pointer :: kl,klr
       integer*2, parameter :: nextra = int2(8)
-      integer*8 kp
-      integer*4 irtc,itfmessage, i,n,mode
-      logical*4 eval,ov
+      integer*8 ,intent(in):: kp
+      integer*4 ,intent(out):: irtc
+      integer*4 itfmessage,i,n,mode
+      logical*4 ,intent(out):: eval
+      logical*4 ov
       eval=.true.
       k1=dlist(kp)
       if(ktfnonlistq(k1,kl))then
@@ -265,7 +277,7 @@
         call tfreplist(klr,1,k2,eval)
       endif
       if(eval)then
-        call tfleval(klr,kr,.true.,irtc)
+        kr=tfleval(klr,.true.,irtc)
         if(irtc .ne. 0)then
           return
         endif
@@ -279,12 +291,15 @@
       logical*4 function tfgetstoredp(ks0,kp,def,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) ks0,ks
+      type (sad_descriptor) ,intent(in):: ks0
+      type (sad_descriptor) ks
       type (sad_dlist), pointer :: lists
       type (sad_symdef), pointer :: symd
       integer*8 kp
-      integer*4 irtc,itfmessageexp,itfmessage
-      logical*4 def,ev
+      integer*4 ,intent(out):: irtc
+      integer*4 itfmessageexp,itfmessage
+      logical*4 ,intent(out):: def
+      logical*4 ev
       def=.false.
       irtc=0
       tfgetstoredp=.false.
@@ -320,6 +335,7 @@
 
       function  tfset1(k10,k20,mopc,irtc) result(kx)
       use tfstk
+      use eexpr
       use mackw
       implicit none
       type (sad_descriptor) k1,k2,kx,ks,ka
@@ -328,7 +344,9 @@
       type (sad_symbol), pointer ::sym
       type (sad_symdef),pointer :: symd
       integer*8 ka1,kaa,kas,kar
-      integer*4 irtc,mopc,itfmessage,itfmessageexp,i
+      integer*4 ,intent(out):: irtc
+      integer*4 ,intent(in):: mopc
+      integer*4 itfmessage,itfmessageexp,i
       irtc=0
       k1=k10
       k2=k20
@@ -338,7 +356,7 @@
         if(ktfoperq(ka,kaa))then
           select case (kaa)
           case (mtflist)
-            call tfearray(k1,k2,kx,mtfset,irtc)
+            kx=tfearray(k1,k2,mtfset,irtc)
             return
           case (mtfpart)
             call tfsetpart(list,k2,kx,0,irtc)
@@ -433,14 +451,19 @@ c        if(ka1 .gt. 0 .and. ktfrealq(k2))then
 
       subroutine tftagset(list,k2,kx,mopc,irtc)
       use tfstk
+      use eeval
       implicit none
-      type (sad_descriptor) ks,k2,kx,kl,kh,tfset1
-      type (sad_dlist) list
+      type (sad_descriptor) ,intent(in):: k2
+      type (sad_descriptor) ,intent(out):: kx
+      type (sad_descriptor) ks,kl,kh,tfset1
+      type (sad_dlist) ,intent(in):: list
       type (sad_symbol), pointer :: syms
       type (sad_symdef),pointer :: symd
       type (sad_dlist), pointer :: list1,kls,kll,klh
-      integer*4 irtc,mopc,itfmessage,itfmessageexp
-      call tfeevaldef(list%dbody(1),ks,irtc)
+      integer*4 ,intent(out):: irtc
+      integer*4 ,intent(in):: mopc
+      integer*4 itfmessage,itfmessageexp
+      ks=tfeevaldef(list%dbody(1),irtc)
       if(irtc .ne. 0)then
         return
       endif
@@ -451,7 +474,7 @@ c        if(ka1 .gt. 0 .and. ktfrealq(k2))then
         irtc=itfmessage(9,'General::wrongtype','"Symbol"')
         return
       endif
-      call tfeevaldef(list%dbody(2),kl,irtc)
+      kl=tfeevaldef(list%dbody(2),irtc)
       if(irtc .ne. 0)then
         return
       endif
@@ -496,10 +519,11 @@ c        if(ka1 .gt. 0 .and. ktfrealq(k2))then
       subroutine tfdsethead(list,sym,kh)
       use tfstk
       implicit none
-      type (sad_descriptor) kh,ki,ki0
-      type (sad_dlist) list
+      type (sad_descriptor) ,intent(out):: kh
+      type (sad_descriptor) ki,ki0
+      type (sad_dlist) ,intent(in):: list
       type (sad_dlist), pointer :: kli
-      type (sad_symbol) sym
+      type (sad_symbol) ,intent(in):: sym
       type (sad_symbol), pointer :: symi
       integer*4 i
       kh%k=ktfref

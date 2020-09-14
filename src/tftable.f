@@ -2,20 +2,21 @@
      $     result(kx)
       use tfstk
       use efun
+      use eeval
       implicit none
-      integer*4 maxint
-      parameter (maxint=2**31-1)
+      integer*4 ,parameter ::maxint=huge(0)
       type (sad_descriptor) kx,kj,kxlistcopied,ke,ki,k1,kl
       type (sad_dlist), pointer :: listi,kle,klj
       type (sad_rlist), pointer :: klr
       type (sad_symbol), pointer :: name
       type (sad_symdef), pointer :: symd
+      integer*4 ,intent(in):: isp1,isp2,ispa,mode
+      integer*4 ,intent(out):: irtc
       integer*8 ls
-      integer*4 isp1,isp2,irtc,mode,ispa,narg,ns,
-     $     itfmessage,itfdownlevel,lv,m,j,isp0,ispb,i
+      integer*4 narg,ns,itfmessage,itfdownlevel,lv,m,j,isp0,ispb,i
       real*8 x0,x1,xstep,xns,xi,ve
       logical*4 var
-      kx=dxnull
+      kx%k=ktfoper+mtfnull
       narg=ispa-isp1
       if(narg .lt. 2)then
         irtc=itfmessage(9,'General::narg','"2 or more"')
@@ -30,7 +31,7 @@
         if(listi%head%k .eq. ktfoper+mtflist)then
           m=listi%nl
           if(m .eq. 1)then
-            call tfeevalref(listi%dbody(1),kl,irtc)
+            kl=tfeevalref(listi%dbody(1),irtc)
             if(.not. ktfrealq(kl,x1))then
               irtc=itfmessage(9,'General::wrongtype','"Real number"')
               return
@@ -48,7 +49,7 @@
             if(.not. ktfsymbolq(k1,name))then
               go to 9500
             endif
-            call tfeevalref(listi%dbody(2),k1,irtc)
+            k1=tfeevalref(listi%dbody(2),irtc)
             if(irtc .ne. 0)then
               return
             endif
@@ -60,7 +61,7 @@
               xstep=1.d0
             else
               x0=x1
-              call tfeevalref(listi%dbody(3),k1,irtc)
+              k1=tfeevalref(listi%dbody(3),irtc)
               if(irtc .ne. 0)then
                 return
               endif
@@ -70,7 +71,7 @@
               if(m .eq. 3)then
                 xstep=1.d0
               else
-                call tfeevalref(listi%dbody(4),k1,irtc)
+                k1=tfeevalref(listi%dbody(4),irtc)
                 if(irtc .ne. 0)then
                   return
                 endif
@@ -101,17 +102,9 @@
         var=.false.
       endif
       if(x1 .eq. dinfinity .or. x0 .eq. -dinfinity)then
-        if(xstep .gt. 0.d0)then
-          ls=maxint
-        else
-          ls=0
-        endif
+        ls=merge(maxint,0,xstep .gt. 0.d0)
       elseif(x1 .eq. -dinfinity .or. x0 .eq. dinfinity)then
-        if(xstep .gt. 0.d0)then
-          ls=0
-        else
-          ls=maxint
-        endif
+        ls=merge(0,maxint,xstep .gt. 0.d0)
       else
         xns=(x1-x0)/xstep*(1.d0+1.d-11)
         ls=max(-1,min(int8(xns),maxint-1))+1
@@ -148,7 +141,7 @@
             if(ktflistq(ke,kle))then
               do j=1,ns
                 levele=levele+1
-                call tfleval(kle,kj,.true.,irtc)
+                kj=tfleval(kle,.true.,irtc)
                 lv=itfdownlevel()
                 if(irtc .ne. 0)then
                   if(irtc .eq. -2)then
@@ -163,7 +156,7 @@
             else
               do j=1,ns
                 levele=levele+1
-                call tfeevalref(ke,kj,irtc)
+                kj=tfeevalref(ke,irtc)
                 lv=itfdownlevel()
                 if(irtc .ne. 0)then
                   if(irtc .eq. -2)then
@@ -194,7 +187,7 @@
               if(ktflistq(ke,kle))then
                 do j=1,ns
                   levele=levele+1
-                  call tfleval(kle,kj,.true.,irtc)
+                  kj=tfleval(kle,.true.,irtc)
                   if(irtc .ne. 0)then
                     if(irtc .eq. -2)then
                       irtc=0
@@ -234,7 +227,7 @@ c                      enddo
               else
                 do j=1,ns
                   levele=levele+1
-                  call tfeevalref(ke,kj,irtc)
+                  kj=tfeevalref(ke,irtc)
                   if(irtc .ne. 0)then
                     if(irtc .eq. -2)then
                       irtc=0
@@ -276,7 +269,7 @@ c                      enddo
             if(ktflistq(ke,kle))then
               do j=1,ns
                 levele=levele+1
-                call tfleval(kle,kj,.true.,irtc)
+                kj=tfleval(kle,.true.,irtc)
                 lv=itfdownlevel()
                 if(irtc .ne. 0)then
                   if(irtc .eq. -2)then
@@ -289,7 +282,7 @@ c                      enddo
             else
               do j=1,ns
                 levele=levele+1
-                call tfeevalref(ke,kj,irtc)
+                kj=tfeevalref(ke,irtc)
                 lv=itfdownlevel()
                 if(irtc .ne. 0)then
                   if(irtc .eq. -2)then
@@ -317,7 +310,7 @@ c                      enddo
               if(ktflistq(ke,kle))then
                 do j=1,ns
                   levele=levele+1
-                  call tfleval(kle,kj,.true.,irtc)
+                  kj=tfleval(kle,.true.,irtc)
                   if(irtc .ne. 0)then
                     if(irtc .eq. -2)then
                       irtc=0
@@ -352,7 +345,7 @@ c                      enddo
               else
                 do j=1,ns
                   levele=levele+1
-                  call tfeevalref(ke,kj,irtc)
+                  kj=tfeevalref(ke,irtc)
                   if(irtc .ne. 0)then
                     if(irtc .eq. -2)then
                       irtc=0
@@ -400,11 +393,7 @@ c                      enddo
         do i=ispb+1,isp
           call tflocal(ktastk(i))
         enddo
-        if(mode .eq. 2)then
-          ktastk(ispb)=ktfoper+mtfplus
-        else
-          ktastk(ispb)=ktfoper+mtfmult
-        endif
+        ktastk(ispb)=ktfoper+merge(mtfplus,mtfmult,mode .eq. 2)
         kx=tfefunref(ispb,.true.,irtc)
       endif
  9000 isp=ispb-1
@@ -437,7 +426,8 @@ c        call tfcatchreturn(0,kx,irtc)
       implicit none
       type (sad_dlist), pointer ::klx
       type (sad_rlist), pointer ::klr
-      integer*4 isp1,i,n
+      integer*4 ,intent(in):: isp1
+      integer*4 i,n
       logical*4 nr,re
       if(isp1 .ge. isp)then
         kxlistcopied=dxnulll
@@ -472,10 +462,12 @@ c        call tfcatchreturn(0,kx,irtc)
       subroutine tfrange(isp1,kx,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) kx
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
       type (sad_rlist), pointer :: kl
       integer*8 n
-      integer*4 isp1,irtc,narg,i,itfmessage
+      integer*4 narg,i,itfmessage
       real*8 x0,x1,xs,xi
       narg=isp-isp1
       if(narg .gt. 3)then
@@ -506,7 +498,7 @@ c        call tfcatchreturn(0,kx,irtc)
         return
       endif
       n=max(int8((x1-x0)/xs*(1.d0+1.d-11)+1.d0),0)
-      if(n .gt. 2**31-1)then
+      if(n .gt. HUGE(0))then
         irtc=itfmessage(9,'General::wrongval',
      $       '"# of elements","less than 2^31"')
         return

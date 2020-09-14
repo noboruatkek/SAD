@@ -4,6 +4,7 @@
       use ffs, only:pi2
       use ffs_fit
       use ffs_pointer, only:elatt
+      use eeval
       implicit none
       real*8 sqrt3
 c      parameter (sqrt3=sqrt(3.d0))
@@ -13,10 +14,12 @@ c      parameter (sqrt3=sqrt(3.d0))
       type (sad_descriptor) kx,ki,kxnfam
       type (sad_descriptor) , save :: kxmamp,kxnfamp
       integer*4, parameter :: ivoid=9999,maxnfp=12
+      integer*4 ,intent(in):: ll
       integer*8 lp
-      real*8 twissi(50),em,trans(4,4),
+      real*8 ,intent(in):: em
+      real*8 twissi(50),trans(4,4),
      $     dx(4,maxnfp*2),dxp(4,maxnfp*2)
-      integer*4 m,nfa,i,j,irtc,itfdownlevel,l,ll,nfp
+      integer*4 m,nfa,i,j,irtc,itfdownlevel,l,nfp
       real*8 dpw,x0,px0,y0,py0,dpi,x,y,dp0,c,s
       data kxmamp%k /0/
       lp=elatt%comp(ll)
@@ -30,7 +33,7 @@ c      parameter (sqrt3=sqrt(3.d0))
       endif
       call tclrfpe
       levele=levele+1
-      call tfeeval(kxmamp,kx,.true.,irtc)
+      kx=tfeeval(kxmamp,.true.,irtc)
       if(irtc .ne. 0)then
         write(*,*)'Error in MatchingAmplitude, code =',irtc
         go to 9000
@@ -42,7 +45,7 @@ c      parameter (sqrt3=sqrt(3.d0))
       if(m .le. 0)then
         go to 9100
       endif
-      call tfeeval(kxnfamp,kxnfam,.true.,irtc)
+      kxnfam=tfeeval(kxnfamp,.true.,irtc)
       if(ktfnonrealq(kxnfam,nfp) .or. nfp .le. 0)then
         call tfdebugprint(kxnfam,
      $       'Non-positive NFAMP - FAM is skipped:',1)
@@ -88,36 +91,22 @@ c      parameter (sqrt3=sqrt(3.d0))
           y=kli%rbody(3)
           if(x .ne. 0.d0)then
             do j=1,nfp
-              if(dpw .eq. 0.d0)then
-                jfam(nfa)=0
-              else
-                jfam(nfa)=nint(2*nfr*(dpi-dp(-nfr))/dpw-nfr)
-              endif
+              jfam(nfa)=merge(0,nint(2*nfr*(dpi-dp(-nfr))/dpw-nfr),
+     $             dpw .eq. 0.d0)
               dfam(1:4,nfa)=dxp(1:4,j)*x
               dp(nfa)=dp(jfam(nfa))
               kfam(nfa)=j
-              if(nfa .ge. 0)then
-                nfa=-nfa
-              else
-                nfa=-nfa+1
-              endif
+              nfa=merge(-nfa,-nfa+1,nfa .ge. 0)
             enddo
           endif
           if(y .ne. 0.d0)then
             do j=nfp+1,nfp*2
-              if(dpw .eq. 0.d0)then
-                jfam(nfa)=0
-              else
-                jfam(nfa)=nint(2*nfr*(dpi-dp(-nfr))/dpw-nfr)
-              endif
+              jfam(nfa)=merge(0,nint(2*nfr*(dpi-dp(-nfr))/dpw-nfr),
+     $             dpw .eq. 0.d0)
               dfam(1:4,nfa)=dxp(1:4,j)*y
               dp(nfa)=dp(jfam(nfa))
               kfam(nfa)=nfp-j
-              if(nfa .ge. 0)then
-                nfa=-nfa
-              else
-                nfa=-nfa+1
-              endif
+              nfa=merge(-nfa,-nfa+1,nfa .ge. 0)
             enddo
           endif
         endif

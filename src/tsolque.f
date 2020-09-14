@@ -147,17 +147,17 @@
           g2 = -((sh2**2*w1**2)/akkp)
           wr1 = w1/w2
           wr2 = w2/w1
-          cxs1 = dc1*s1 - xs1
+          cxs1 = dc1*s1   - xs1
           cxs2 = dch2*sh2 - xsh2
           aw1 = aln + (cxs2*wr1)/ws
           aw2 = aln + (cxs1*wr2)/ws
-          cr2 = c1*wr2
+          cr2 = c1 *wr2
           cr3 = ch2*wr1
           csw1 = akkp*aln*(-dc1 + dch2)
           csws = (ch2*w1*phi1 + c1*w2*phi2)*wss
           ca1=-(ch2*dc1) - dch2 - (s1*sh2*w12)/ws
           dxs=w2*xs1-w1*xsh2
-          dcw1=dc1*phi2
+          dcw1=dc1 *phi2
           dcw2=dch2*phi1
         endif
         return
@@ -319,11 +319,7 @@ c        write(*,*)'tsolque-implementation error ',ak
 c        stop
       endif
       bz=bz0
-      if(eps0 .eq. 0.d0)then
-        eps=0.1d0
-      else
-        eps=0.1d0*eps0
-      endif
+      eps=merge(0.1d0,0.1d0*eps0,eps0 .eq. 0.d0)
       ndiv=1+int(abs(al*hypot(ak,bz))/eps)
       aln=al/ndiv
       dx0=ak0x/ak

@@ -26,8 +26,12 @@ extern int asprintf(char**, const char*, ...);
  */
 #define SAD_EPOCH_OFFSET	2209021200.0
 
+static real8 r_true = 1.0L;
+/*
+static real8 r_false = 0.0L;
+*/
 /* Return real8 object as True/False */
-#define SAD_BOOLEAN(cond)	((cond) ? 1. : 0.)
+#define SAD_BOOLEAN(cond) ((cond) ? ktftrue : ktffalse)
 
 /* Typedef for SADScript function pointer */
 typedef int (*sad_func_t)(integer4*, integer4*, integer4*, real8*, integer4*);
@@ -72,8 +76,6 @@ typedef unsigned int	bit_field_t;
 #define kfromr(x) (*((integer8 *) &x))
 #define rfromk(k) (*((real8 *) &k))
 
-static real8 r_true = 1.0;
-
 /* Proxy functions between module and global scope */
 
 /* Fortran based Internal API Prototypes */
@@ -84,6 +86,7 @@ extern integer4 igetgl_(const_character, ftnlen);
 extern real8    rgetgl1_(const_character, ftnlen);
 extern void capita_(character, ftnlen);
 extern void tfreadbuf_(integer4*, integer4*, integer4*);
+extern void __readbuf_MOD_tfreadbuf(integer4*, integer4*, integer4*);
 extern void __tfrbuf_MOD_trbinit(integer4*, integer4*);
 extern void gettok_(character, integer4*, integer4*, real8*, integer4*, ftnlen);
 extern void __tfmem_MOD_tfree(integer8*);

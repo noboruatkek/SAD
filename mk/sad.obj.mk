@@ -9,14 +9,14 @@ OBJ_LIBSAD=$(OBJMOD) $(OBJ0) $(OBJ1) $(OBJ2) $(OBJ3) $(OBJ4) $(OBJ5) $(OBJ6) \
 	$(OBJFUNC) \
 	$(OBJUTIL) $(OBJOSDEP)
 
-OBJMOD= tfstk.o		tfstrbuf.o	tfreadbuf.o	toplvl.o	tintrb.o \
+OBJMOD= tfstk.o		tfstrbuf.o	toplvl.o	tintrb.o \
 	tftwiss.o	tftake.o	tfsolvemember.o	tfetok.o	tfbeamline.o\
 	temit.o		tfloor.o	 tffs.o tdjin.o 
 
 OBJRC= 	tfefun1.o	tfsort.o	tfmodule.o	itfmaloc.o \
 	tfwrite.o	itfaloc.o	tfmemcheck.o	tfdot.o		tfematrix.o \
 	tfconvstr.o	tfpart.o	tfreplace.o	tftake.o	tfeval1.o \
-	tfearray.o	tfeexpr.o	tfsetlist.o	tfeeval.o	tfmap.o	tftable.o \
+	tfeexpr.o	tfsetlist.o	tfeeval.o	tfmap.o	tftable.o \
 	itfdepth.o	tfdset.o	tfsameq.o	itfpmat.o	tmatch.o \
 	gamma.o		tfbessel.o	 spkick.o	tsolqu.o	tsolque.o \
 	tfshared.o	tfinitn.o	tffsa.o photons.o
@@ -111,7 +111,7 @@ OBJAUTO=         abbrev.o    cputix.o     csinit.o     \
      tspch_.o     ft.o        psn.o       spch.o \
      csrtest.o csrtrack.o csroy.o txwake.o tbbbrem.o
 
-OBJF=tfeval.o    itfcopy.o tfefun.o  tfmap.o     tfprinta.o  tfestk.o
+OBJF=tfeval.o    itfcopy.o tfefun.o  tffuns.o tfmap.o     tfprinta.o  tfestk.o
 
 OBJUTIL=utils.o
 
@@ -124,7 +124,7 @@ OBJOBS = mbmp.o temp.o pstati3.o palgn.o pvbump.o pwrtmon.o pwrtstr.o \
 	mrmb.o mhogal.o mstat.o mstatp.o pmovi.o mhogan.o monel.o \
 	mfnst.o mstat2.o metaer.o trotg.o nlfit.o gaus3.o corinit.o \
 	pvbump2.o pmeas.o pmbdata.o pvbump3.o ptrim.o pundo.o \
-	pmbdrw.o pmbump.o pvbump1.o preabuf.o pmbdata1.o 
+	pmbdrw.o pmbump.o pvbump1.o preabuf.o pmbdata1.o tfearray.o
 
 # from sad.builtin.mk
 OBJFUNC=tfDefFuncs_.o $(_SAD_FUNC_OBJS)
@@ -142,7 +142,7 @@ OBJSIM_DYNL=sim/dynl.o $(OBJDYNL)
 
 OBJSIM= sim/unix_pointer_.o sim/unix_memory_.o sim/unix_memory8_.o \
 	sim/sad_api.o sim/sad_functbl.o sim/sad_signal.o \
-	sim/sad_xlib.o sim/sad_tcltk.o \
+	sim/sad_xlib.o sim/sad_tcltk.o sim/maprwfile.o\
 	$(OBJ_FORTRAN) \
 	$(OBJSIM_DYNL) \
 	$(FRAMEWORK_OBJS) \

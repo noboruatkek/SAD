@@ -305,6 +305,7 @@ static int Wait4(integer4 *isp1, integer8 *kx,
   integer4 isp0;
   pid_t pid, wpid;
   int status, options, options0, i;
+  real8 dt,w;
   struct rusage resource_usage;
 
   if(itfContinued == 0) {
@@ -396,7 +397,8 @@ static int Wait4(integer4 *isp1, integer8 *kx,
 
     if(WIFSIGNALED(status)) { /* if signaled */
 #if defined(WTERMSIG)
-      tfmakerulestk(ktfsymbol+itfSignal,  WTERMSIG(status));
+      w=(real8) WTERMSIG(status);
+      tfmakerulestk(ktfsymbol+itfSignal,  kfromr(w));
 #endif
 #if defined(WCOREDUMP)
       tfmakerulestk(ktfsymbol+itfCore,    SAD_BOOLEAN(WCOREDUMP(status)));
@@ -405,15 +407,15 @@ static int Wait4(integer4 *isp1, integer8 *kx,
 
     if(WIFSTOPPED(status)) { /* if stopped */
 #if defined(WSTOPSIG)
-      tfmakerulestk(ktfsymbol+itfSignal,  WSTOPSIG(status));
+      w=(real8) WSTOPSIG(status);
+      tfmakerulestk(ktfsymbol+itfSignal,  kfromr(w));
 #endif
     }
 
     /* Process resource usage summary...(see getrusage(2)) */
-    tfmakerulestk(ktfsymbol+itfUserTime,  resource_usage.ru_utime.tv_sec
-		  + resource_usage.ru_utime.tv_usec * 1e-6);
-    tfmakerulestk(ktfsymbol+itfSysTime,   resource_usage.ru_stime.tv_sec
-		  + resource_usage.ru_stime.tv_usec * 1e-6);
+    dt=resource_usage.ru_utime.tv_sec + resource_usage.ru_utime.tv_usec * 1e-6;
+    tfmakerulestk(ktfsymbol+itfUserTime,  kfromr(dt));
+    tfmakerulestk(ktfsymbol+itfSysTime,   kfromr(dt));
 
   }
 
@@ -600,7 +602,7 @@ static int SigSuspend(integer4 *isp1, integer8 *kx,
 static int SigProcMask(integer4 *isp1, integer8 *kx,
 		       integer4 *irtc) {
   static integer8 itfUnBlock = 0, itfAll = 0;
-  integer4 isp0, isp2, i, iop; 
+  integer4 isp0, isp2, i, iop;
   integer8 ia;
   sigset_t old, new, *mask;
   int action, signo, status;
@@ -811,7 +813,7 @@ static int SigAction(integer4 *isp1, integer8 *kx,
 			 "\"Action -> Default, Ignore, Real-number and Pointer address string\"");
       return -1;
     };
-      
+
   j1:    if(ktfrealq(ktastk(isp0 + 2))){
       signo = rtastk(isp0 + 2);
       sad_sa_flags |= signo;
@@ -826,7 +828,7 @@ static int SigAction(integer4 *isp1, integer8 *kx,
           signo = rlist(ia + i);
           sad_sa_flags |= signo;
         }
-      } 
+      }
       else {
         isp = isp0;
         *irtc = itfmessage(9, "General::wrongtype",
@@ -877,7 +879,7 @@ static int SigAction(integer4 *isp1, integer8 *kx,
       *irtc = itfmessage(9, "General::wrongtype",
                          "\"Mask -> {Signal-numbers} or AllSignals\"");
       return -1;
-        
+
     };
   } else
     ispopt = isp + 1;
@@ -1124,7 +1126,7 @@ static int Environments(integer4 *isp1, integer8 *kx,
   return 0;
 }
 
-static int GetEnv(integer4 *isp1, integer8 *kx, 
+static int GetEnv(integer4 *isp1, integer8 *kx,
 		  integer4 *irtc) {
   integer8 ka;
   char *buf;
@@ -1271,7 +1273,7 @@ static int UnsetEnv(integer4 *isp1, integer8 *kx,
   return 0;
 }
 
-static int GetDirectory(integer4 *isp1, integer8 *kx, 
+static int GetDirectory(integer4 *isp1, integer8 *kx,
 			integer4 *irtc) {
   char *buf;
 

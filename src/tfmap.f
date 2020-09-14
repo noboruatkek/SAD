@@ -1,14 +1,15 @@
       function tfmap(isp1,mode,ihead,irtc) result(kx)
       use tfstk
       implicit none
-      type (sad_descriptor) kx,kf,kl
-      type (sad_descriptor) tflevelstk,tfmap1
-      integer*4 maxind
-      parameter (maxind=4096)
+      type (sad_descriptor) kx
+      integer*4 ,intent(in):: isp1,mode,ihead
+      integer*4 ,intent(out):: irtc
+      type (sad_descriptor) kf,kl,tflevelstk,tfmap1
+      integer*4 ,parameter::maxind=4096
       real*8 rind(maxind)
-      integer*4 isp1,narg,irtc,n1,n2,ispf,
-     $     isp0,ind,mode,ihead,itfmessage
+      integer*4 narg,n1,n2,ispf,isp0,ind,itfmessage
       narg=isp-isp1
+      kx%k=ktfoper+mtfnull
       if(narg .eq. 2)then
         if(mode .eq. 1 .or. mode .eq. 3)then
           kx=tfmap1(isp1,mode,irtc)
@@ -24,18 +25,14 @@
         endif
         ispf=isp-2
       elseif(narg .eq. 1)then
-        if(mode .ne. 0 .and. mode .ne. 4)then
-          irtc=-1
-        else
-          irtc=itfmessage(9,'General::narg','"2 or 3"')
-        endif
+        irtc=merge(-1,
+     $       itfmessage(9,'General::narg','"2 or 3"'),
+     $       mode .ne. 0 .and. mode .ne. 4)
         return
       else
-        if(mode .ne. 0 .and. mode .ne. 4)then
-          irtc=itfmessage(9,'General::narg','"2 or 3"')
-        else
-          irtc=itfmessage(9,'General::narg','"1 or 2 or 3"')
-        endif
+        irtc=merge(itfmessage(9,'General::narg','"2 or 3"'),
+     $       itfmessage(9,'General::narg','"1 or 2 or 3"'),
+     $       mode .ne. 0 .and. mode .ne. 4)
         return
       endif
       kf=dtfcopy(dtastk(ispf))
@@ -62,20 +59,19 @@
       implicit none
       type (sad_descriptor) kx,k,ki,kf
       type (sad_dlist), pointer :: kl,kli
-      integer*4 isp1,isp0,isp2,mode,irtc,l,i,itfdownlevel
+      integer*4 ,intent(in):: isp1,mode
+      integer*4 ,intent(out):: irtc
+      integer*4 isp0,isp2,l,i,itfdownlevel
       k=dtastk(isp)
       if(ktfnonlistq(k,kl))then
-        if(mode .eq. 1)then
-          kx%k=ktfoper+mtfnull
-        else
-          kx=k
-        endif
+        kx=merge(dxnullo,k,mode .eq. 1)
         irtc=0
         return
       endif
       isp0=isp
       k=dtfcopy1(k)
       kf=dtfcopy(dtastk(isp1+1))
+      kx%k=ktfoper+mtfnull
       if(mode .eq. 1)then
         isp2=isp+1
         do i=1,kl%nl
@@ -87,7 +83,7 @@
           l=itfdownlevel()
           if(irtc .ne. 0)then
             if(irtc .eq. -3)then
-              go to 1000
+              exit
             elseif(irtc .eq. -2)then
               irtc=0
             else
@@ -95,7 +91,7 @@
             endif
           endif
         enddo
- 1000   call tflocald(kf)
+        call tflocald(kf)
         call tflocal1(k%k)
         kx%k=ktfoper+mtfnull
         isp=isp2-1
@@ -145,9 +141,12 @@
       subroutine tfmapall(isp1,kx,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) kx,kf,kl
+      type (sad_descriptor) ,intent(out):: kx
+      type (sad_descriptor) kf,kl
       type (sad_descriptor) tflevelstk
-      integer*4 isp1,narg,irtc,ihead,itfmessage
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      integer*4 narg,ihead,itfmessage
       narg=isp-isp1
       ihead=1
       if(narg .eq. 3)then
@@ -175,10 +174,13 @@
       use tfstk
       use efun
       implicit none
-      type (sad_descriptor) kx,kf,kl
+      type (sad_descriptor) ,intent(out):: kx
+      type (sad_descriptor) kf,kl
       type (sad_descriptor) tflevelstk
       type (sad_dlist), pointer :: klx
-      integer*4 isp1,narg,irtc,n1,n2,ispf,itfmessage
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      integer*4 narg,n1,n2,ispf,itfmessage
       narg=isp-isp1
       if(narg .eq. 2)then
         kx=dtastk(isp)
@@ -218,9 +220,12 @@
       subroutine tfcases(isp1,kx,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) kx,kr
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      type (sad_descriptor) kr
       type (sad_dlist), pointer :: klx
-      integer*4 isp1,irtc,narg,isp0,i,itfmessage,itr
+      integer*4 narg,isp0,i,itfmessage,itr
       narg=isp-isp1
       if(narg .eq. 1)then
         irtc=-1
@@ -259,16 +264,20 @@
 
       subroutine tfposition(isp1,kx,icases,irtc)
       use tfstk
+      use eeval
       implicit none
-      type (sad_descriptor) kf,kx,ki,kl
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1,icases
+      integer*4 ,intent(out):: irtc
+      type (sad_descriptor) kf,ki,kl
       type (sad_descriptor) tfgetoption1,tflevelstk
       type (sad_dlist), pointer :: kla,klx,kll
       type (sad_rlist), pointer :: klir
       integer*4 maxind
       parameter (maxind=4096)
       real*8 rind(maxind)
-      integer*4 isp1,narg,irtc,n1,n2,ispf,ind,isp0,
-     $     ihead,ispmax,icases,itfmessage,ispa,
+      integer*4 narg,n1,n2,ispf,ind,isp0,
+     $     ihead,ispmax,itfmessage,ispa,
      $     i,ii,nl,ispb,itfpmat,mstk0,iop
       logical*4 rep
       integer*4, parameter :: maxlevel=100000000
@@ -282,11 +291,7 @@
         irtc=-1
         return
       endif
-      if(icases .eq. 0)then
-        ihead=0
-      else
-        ihead=1
-      endif
+      ihead=merge(0,1,icases .eq. 0)
       isp0=isp
       ispa=isp
  1    if(narg .eq. 2)then
@@ -304,11 +309,7 @@
           kx=tfgetoption1(kxheads,kla,rep)
           if(rep .and. ktfrealq(kx))then
             ispa=ispa-1
-            if(kx%k .eq. 0)then
-              ihead=1
-            else
-              ihead=0
-            endif
+            ihead=merge(1,0,kx%k .eq. 0)
             narg=narg-1
             if(narg .eq. 2)then
               go to 1
@@ -428,7 +429,7 @@
         return
       endif
       if(icases .eq. 2)then
-        call tfeevalref(kx,kx,irtc)
+        kx=tfeevalref(kx,irtc)
       else
         kx=kxmakelist(isp0)
       endif
@@ -439,11 +440,13 @@
       subroutine tfflatten(isp1,kx,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) kx,kh,kh0
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      type (sad_descriptor) kh,kh0
       type (sad_dlist), pointer :: klx,kl
-      integer*4 isp1,narg,level,irtc,itfmessage
-      real*8 amaxl
-      parameter (amaxl=1.d9)
+      integer*4 narg,level,itfmessage
+      real*8 ,parameter ::amaxl=1.d9
       narg=isp-isp1
       irtc=-1
       if(narg .gt. 3)then
@@ -482,11 +485,12 @@
       subroutine tfflattenstk(kl,level0,kh,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) kh
+      type (sad_descriptor) ,intent(in):: kh
       type (sad_dlist), intent(in):: kl
       type (sad_dlist), pointer :: list,kli
-      integer*4 level,irtc,i,m,i0,level0,itfmessage,mstk0
-c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
+      integer*4 ,intent(in):: level0
+      integer*4 ,intent(out):: irtc
+      integer*4 level,i,m,i0,itfmessage,mstk0
       call dlist_dlist(kl,list)
       mstk0=mstk
       level=level0
@@ -538,9 +542,12 @@ c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
 
       subroutine tfiff(isp1,kx,irtc)
       use tfstk
+      use eeval
       implicit none
-      type (sad_descriptor) kx
-      integer*4 isp1,irtc,narg,itfmessage,j
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      integer*4 narg,itfmessage,j
       narg=isp-isp1
       if(narg .le. 1 .or. narg .gt. 4)then
         irtc=itfmessage(9,'General::narg','"2, 3, or 4"')
@@ -564,26 +571,30 @@ c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
           j=isp1+3
         endif
       endif
-      call tfeevalref(dtastk(j),kx,irtc)
+      kx=tfeevalref(dtastk(j),irtc)
       return
       end
 
       subroutine tfswitch(isp1,kx,irtc)
       use tfstk
+      use eeval
       implicit none
-      type (sad_descriptor) kx,kxi
-      integer*4 isp1,irtc,i,itfpmatc,itfmessage
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      type (sad_descriptor) kxi
+      integer*4 i,itfpmatc,itfmessage
       if(mod(isp-isp1,2) .eq. 0)then
         irtc=itfmessage(9,'General::narg','"odd number"')
         return
       endif
       do i=isp1+2,isp-1,2
-        call tfeevalref(dtastk(i),kxi,irtc)
+        kxi=tfeevalref(dtastk(i),irtc)
         if(irtc .ne. 0)then
           return
         endif
         if(itfpmatc(dtastk(isp1+1),kxi) .ge. 0)then
-          call tfeevalref(dtastk(i+1),kx,irtc)
+          kx=tfeevalref(dtastk(i+1),irtc)
           return
         endif
       enddo
@@ -593,20 +604,24 @@ c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
 
       subroutine tfwhich(isp1,kx,irtc)
       use tfstk
+      use eeval
       implicit none
-      type (sad_descriptor) kx,kxi
-      integer*4 isp1,irtc,i,itfmessage
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      type (sad_descriptor) kxi
+      integer*4 i,itfmessage
       if(mod(isp-isp1,2) .ne. 0 .or. isp .le. isp1)then
         irtc=itfmessage(9,'General::narg','"even number"')
         return
       endif
       do i=isp1+1,isp-1,2
-        call tfeevalref(dtastk(i),kxi,irtc)
+        kxi=tfeevalref(dtastk(i),irtc)
         if(irtc .ne. 0)then
           return
         endif
         if(ktftrueq(kxi%k))then
-          call tfeevalref(dtastk(i+1),kx,irtc)
+          kx=tfeevalref(dtastk(i+1),irtc)
           return
         endif
       enddo
@@ -616,9 +631,13 @@ c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
 
       subroutine tfwhile(isp1,kx,irtc)
       use tfstk
+      use eeval
       implicit none
-      type (sad_descriptor) kx,kr,kc,ke
-      integer*4 isp1,itfdownlevel,l,itgetfpe,itfmessage,irtc
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      type (sad_descriptor) kr,kc,ke
+      integer*4 itfdownlevel,l,itgetfpe,itfmessage
       logical*4 f
       if(isp .ne. isp1+2)then
         irtc=itfmessage(9,'Genearl::narg','"2"')
@@ -629,13 +648,13 @@ c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
       ke=dtfcopy(dtastk(isp))
       do while(f)
         levele=levele+1
-        call tfeevalref(kc,kr,irtc)
+        kr=tfeevalref(kc,irtc)
         if(irtc .ne. 0)then
           go to 9000
         endif
         f=ktftrueq(kr%k)
         if(f)then
-          call tfeevalref(ke,kx,irtc)
+          kx=tfeevalref(ke,irtc)
           if(irtc .ne. 0)then
             if(irtc .eq. -3)then
               irtc=0
@@ -668,8 +687,10 @@ c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
       subroutine tfbreak(mode,narg,kx,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) kx
-      integer*4 irtc,mode,narg,itfmessage
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: mode,narg
+      integer*4 ,intent(out):: irtc
+      integer*4 itfmessage
       if(narg .gt. 1)then
         irtc=itfmessage(9,'General::narg','"0"')
         return
@@ -686,8 +707,10 @@ c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
       subroutine tfthrow(mode,k,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) k
-      integer*4 irtc,mode,itfmessage
+      type (sad_descriptor) ,intent(in):: k
+      integer*4 ,intent(in):: mode
+      integer*4 ,intent(out):: irtc
+      integer*4 itfmessage
       if(modethrow .ne. -1)then
         irtc=itfmessage(999,'General::throwinthrow','""')
       else
@@ -701,14 +724,17 @@ c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
 
       subroutine tfcatch(isp1,kx,irtc)
       use tfstk
+      use eeval
       implicit none
-      type (sad_descriptor) kx
-      integer*4 isp1,irtc,itfmessage
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      integer*4 itfmessage
       if(isp-isp1 .ne. 1)then
         irtc=itfmessage(9,'General::narg','"1"')
         return
       endif
-      call tfeevalref(dtastk(isp),kx,irtc)
+      kx=tfeevalref(dtastk(isp),irtc)
       call tfcatchreturn(irtcthrow,kx,irtc)
       return
       end
@@ -716,8 +742,9 @@ c      write(*,*)'tfflattenstk ',sad_loc(kl%head)
       subroutine tfcatchreturn(mode,kx,irtc)
       use tfstk
       implicit none
-      type (sad_descriptor) kx
-      integer*4 mode,irtc
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: mode
+      integer*4 ,intent(inout):: irtc
       if(irtc .lt. -1)then
 c        write(*,*)'tfcatchreturn ',mode,modethrow
         if(modethrow .eq. mode)then
@@ -735,10 +762,12 @@ c        write(*,*)'tfcatchreturn ',mode,modethrow
       use tfstk
       use efun
       implicit none
-      type (sad_descriptor) kx,k,kf,ki,kxi
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      type (sad_descriptor) k,kf,ki,kxi
       type (sad_dlist), pointer ::kl
-      integer*4 isp1,irtc,narg, m,nmax,n,
-     $ isp0,isp2,i,isp00, itfmessage
+      integer*4 narg,m,nmax,n,isp0,isp2,i,isp00,itfmessage
       real*8 amaxl
       parameter (amaxl=1.d10)
       narg=isp-isp1
@@ -813,10 +842,12 @@ c        write(*,*)'tfcatchreturn ',mode,modethrow
       use tfstk
       use efun
       implicit none
-      type (sad_descriptor) kx
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1,mode
+      integer*4 ,intent(out):: irtc
       type (sad_dlist), pointer :: kl,kl2,klx
       integer*8 kak(4096)
-      integer*4 isp1,irtc,mk(0:4096),km,mode,isp4,
+      integer*4 mk(0:4096),km,isp4,
      $     i,j,isp2,isp3,m,itfpmatc,kelm,isp0,itfmessage
       if(isp .eq. isp1+1)then
         irtc=-1
@@ -915,10 +946,12 @@ c        write(*,*)'tfcatchreturn ',mode,modethrow
       use tfcode
       use iso_c_binding
       implicit none
-      type (sad_descriptor) kx
+      type (sad_descriptor) ,intent(out):: kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
       type (sad_namtbl),pointer :: loc
       integer*8 i,j
-      integer*4 isp1,irtc,isp0,npat,nv,l,itfmessage,n
+      integer*4 isp0,npat,nv,l,itfmessage,n
       character*256 pat,tfgetstr,vname
       logical*4 tmatch
       isp0=isp

@@ -53,11 +53,9 @@
       pspac_nturn =max(1,int(rgetgl1('PSPACNTURN')))
       pspac_nturncalc =max(0,int(rgetgl1('PSPACNTURNCALC')))
       call tphyzp
-c      write(*,*)'tfsetparam ',gammab(1),p0
-      if(gammab(1) .ne. p0 .and.  geocal)then
+      if(gammab(1) .ne. p0 .and. geocal)then
         gammab(1)=p0
         call tfgeo1(1,nlat,calgeo,.true.)
-c        write(*,*)'gammab(1): ',gammab(1)
       endif
       call tsetgcut
       xixf  =rfromd(kxsymbolv('XIX',3))*pi2
@@ -86,11 +84,8 @@ c      iwakepold=ifwakep
       cuc=1.5d0*rclassic/rcratio
       anrad =5.d0/2.d0/sqrt(3.d0)*rcratio
       ccintr=(rclassic/h0**2)**2/8.d0/pi
-      if(rlist(klist(ilattp)+1) .ne. 0.d0)then
-        omega0=pi2*cveloc*p0/h0/rlist(klist(ilattp)+1)
-      else
-        omega0=0.d0
-      endif
+      omega0=merge(pi2*cveloc*p0/h0/rlist(klist(ilattp)+1),
+     $     0.d0,rlist(klist(ilattp)+1) .ne. 0.d0)
       call rsetgl1('OMEGA0',omega0)
       return
       end

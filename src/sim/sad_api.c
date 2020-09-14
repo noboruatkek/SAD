@@ -95,7 +95,7 @@ integer8 ktsalocbcstrs_(integer4 *mode, const char **str, integer4 *index) {
 
 /* Wrapper function for SAD internal API */
 void tfreadbuf(integer4 lfn, integer4 *ib, integer4 *nc) {
-   tfreadbuf_(&lfn, ib, nc);
+   __readbuf_MOD_tfreadbuf(&lfn, ib, nc);
   }
 
 void trbinit(integer4 lfn, integer4 *ib) {
@@ -179,13 +179,13 @@ void tfsetlist(integer8 kx, integer8 iax, integer4 i) {
 }
 
 void tfmakerulestk(integer8 ias, integer8 kx) {
-  tfmakerulestk_(&ias, &kx);
+  /*  fprintf(stderr,"mkrs_c: %d %f\n",kx); */
+  tfmakerulestk_(&ias,&kx);
 }
 
 void tfevals(const char *buf,
 	     integer8 *kx, integer4 *irtc) {
   integer4 length = strlen(buf);
-
   tfevalb_(buf, length, kx, irtc);
 }
 

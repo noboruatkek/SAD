@@ -502,12 +502,12 @@ c      call tfmemcheckprint('beambeam',5,.false.,irtc)
 
 !   pn=|p|/p0=1+delta
 c      call tfmemcheckprint('beambeam',7,.false.,irtc)
-      call limitnan(x,-1.d4,1.d4)
-      call limitnan(px,-1.d4,1.d4)
-      call limitnan(y,-1.d4,1.d4)
-      call limitnan(py,-1.d4,1.d4)
-      call limitnan(z,-1.d10,1.d10)
-      call limitnan(g,-1.d0,1.d4)
+      call limitnan(x,1.d4)
+      call limitnan(px,1.d4)
+      call limitnan(y,1.d4)
+      call limitnan(py,1.d4)
+      call limitnan(z,1.d10)
+      call limitnan(g,1.d4)
       do  i=1,np
          pn=1.d0+g(i)
          px(i)=px(i)/pn
@@ -558,7 +558,7 @@ c      call tfmemcheckprint('rlum_col',1,.true.,irtc)
       real*8 m_tmp(36),m_Crs(36),eig5(10)
       real*8 m_B(36),m_R(36),m_H(36),m_HRB(36),m_Emit(36)
       real*8 p_in(70),rne,blist(nblist)
-      real*8 rgetgl,gauinv,rfromk
+      real*8 rgetgl,gauinv
       real*8 cnbs,cpbs,cubs,gamp
 c      type (sad_descriptor) kv
       type (sad_symdef), pointer :: vsymd

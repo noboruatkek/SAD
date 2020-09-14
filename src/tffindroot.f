@@ -9,12 +9,12 @@
         subroutine tfassignrules(sav0,v0,nvar,klx)
         implicit none
         type (sad_descriptor) kx
-        type (sad_dlist), pointer ::klx
+        type (sad_dlist), pointer ,intent(out) ::klx
         type (sad_dlist), pointer ::kli
         integer*4 ,intent(in)::nvar
         integer*4 i
         type (symv),intent(in):: sav0(nvar)
-        real*8 v0(nvar)
+        real*8 ,intent(in):: v0(nvar)
         kx=kxadaloc(-1,nvar,klx)
         do i=1,nvar
           klx%dbody(i)=kxadaloc(0,2,kli)
@@ -38,7 +38,9 @@
       type (symv) , allocatable::sav(:),sav0(:)
       type (sad_dlist), pointer :: klx
       type (sad_rlist), pointer :: klo
-      integer*4 isp1,irtc,neq,nvar,itfmessage,isp2,i,maxi,ispv
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      integer*4 neq,nvar,itfmessage,isp2,i,maxi,ispv
       real*8 eps,d0,frac
       real*8 , allocatable :: v0(:),vmin(:),vmax(:)
       logical*4 trace,used
@@ -67,11 +69,7 @@
         endif          
       endif
       if(.not. used)then
-        if(klo%rbody(4) .gt. 0.d0)then
-          frac=klo%rbody(4)
-        else
-          frac=frac0
-        endif
+        frac=merge(klo%rbody(4),frac0,klo%rbody(4) .gt. 0.d0)
       endif
       if(ispv .lt. isp1+2)then
         irtc=itfmessage(9,'General::narg','"2 or more"')
@@ -124,20 +122,21 @@ c        call tfdebugprint(ke,'tffindroot-deriv',1)
      $     neq,nvar,maxi,eps,trace,frac,irtc)
       use tfstk
       use findr
+      use eeval
       implicit none
       type (sad_dlist), pointer :: klx
       type (symv) sav(nvar)
       type (sad_descriptor) kdl(nvar),kx
       integer*8 ,intent(in):: ke
       integer*4 ,intent(in)::  nvar,neq,maxi
-      integer*4 ,intent(inout):: irtc
+      integer*4 ,intent(out):: irtc
       integer*4 i,j,iter
-      real*8 v0(nvar),f(neq),f0(neq),eps,dv(nvar),
-     $     v(nvar),fact,fact1,fact2,d0,d,d1,d2,
-     $     dg,am,sv,goal,tffsfmin,svi,vmin(nvar),vmax(nvar)
+      real*8 ,intent(inout):: v0(nvar),d0
+      real*8 ,intent(in):: vmin(nvar),vmax(nvar),eps,frac
+      real*8 f(neq),f0(neq),dv(nvar),v(nvar),fact,fact1,fact2,d,d1,d2,
+     $     dg,am,sv,goal,tffsfmin,svi
       real*8 , allocatable :: a(:,:),a0(:,:)
-      logical*4 trace
-      real*8 frac
+      logical*4 ,intent(in):: trace
       real*8 , parameter :: factmin=1.d-4,svmin=1.d-7
       iter=0
       call tfevalresidual(sav,v0,ke,f0,am,d0,nvar,neq,trace,irtc)
@@ -166,7 +165,7 @@ c      enddo
       endif
       v=v0
       do i=1,nvar
-        call tfeevalref(kdl(i),kx,irtc)
+        kx=tfeevalref(kdl(i),irtc)
         if(irtc .ne. 0)then
           deallocate (a0,a)
           return
@@ -250,12 +249,20 @@ c      enddo
       subroutine tfevalresidual(sav,v,ke,f,am,d,nvar,neq,trace,irtc)
       use tfstk
       use findr
+      use eeval
       implicit none
-      integer*4 nvar,i,neq,l,itfuplevel,itfdownlevel,irtc,itfmessage
-      type (symv) sav(nvar)
-      integer*8 ke,kx,kax
-      real*8 v(nvar),f(neq),am,a,b,d
-      logical*4 tfcomplexlistqk,trace
+      integer*4 ,intent(in):: nvar,neq
+      integer*4 ,intent(out):: irtc
+      integer*4 i,l,itfuplevel,itfdownlevel,itfmessage
+      type (symv) ,intent(in):: sav(nvar)
+      type (sad_descriptor) kx
+      type (sad_dlist),pointer::kl
+      integer*8 ke,kax
+      real*8 ,intent(out):: f(neq),am,d
+      real*8 ,intent(in):: v(nvar)
+      real*8 a,b
+      logical*4 ,intent(in):: trace
+      logical*4 tfcomplexlistqk
       do i=1,nvar
         if(trace)then
           write(*,*)'FindRoot Vars: ',i,v(i)
@@ -263,8 +270,8 @@ c      enddo
         sav(i)%p%value=dfromr(v(i))
       enddo
       l=itfuplevel()
-c      call tfdebugprint(ke,'evalres-1',1)
-      call tfleval(klist(ktfaddr(ke)-3),kx,.true.,irtc)
+      call loc_sad(ktfaddr(ke),kl)
+      kx=tfleval(kl,.true.,irtc)
 c      call tfdebugprint(kx,'evalres-2',1)
       if(irtc .ne. 0)then
         go to 9000
@@ -273,7 +280,7 @@ c      call tfdebugprint(kx,'evalres-2',1)
         irtc=itfmessage(9,'General::wrongval','"Result of eqs","List"')
         go to 9000
       endif
-      kax=ktfaddr(kx)
+      kax=ktfaddr(kx%k)
       if(ilist(2,kax-1) .ne. neq*2)then
         irtc=itfmessage(9,'General::wrongleng','"results","equations"')
         go to 9000
@@ -281,12 +288,9 @@ c      call tfdebugprint(kx,'evalres-2',1)
       if(ktfnonreallistq(kax))then
         if(tfcomplexlistqk(kx))then
           do i=1,neq
-            if(ktfrealq(klist(kax+i*2-1)) .and.
-     $           ktfrealq(klist(kax+i*2)))then
-              f(i)=rlist(kax+i*2-1)-rlist(kax+i*2)
-            else
-              f(i)=1.d200
-            endif
+            f(i)=merge(rlist(kax+i*2-1)-rlist(kax+i*2),1.d200,
+     $           ktfrealq(klist(kax+i*2-1)) .and.
+     $           ktfrealq(klist(kax+i*2)))
           enddo
           am=1.d300
           d=1.d300
@@ -319,13 +323,16 @@ c      call tfdebugprint(kx,'evalres-2',1)
      $     nvar,sav,sav0,v0,vmin,vmax,nvmax,irtc)
       use tfstk
       use findr
+      use eeval
       implicit none
       type (sad_descriptor) k1,ki,kv,k3
       type (sad_symbol), pointer :: sym1
       type (sad_dlist), pointer :: kli,kl3
-      integer*4 isp1,nvar,nvmax,i,j,isp0,isp2,irtc,ig,itfmessage
-      type (symv) sav(nvmax),sav0(nvmax)
-      real*8 v0(nvmax),vmin(nvmax),vmax(nvmax)
+      integer*4 ,intent(in):: isp1,isp2,nvmax
+      integer*4 ,intent(out):: nvar,irtc
+      integer*4 i,j,isp0,ig,itfmessage
+      type (symv) ,intent(inout):: sav(nvmax),sav0(nvmax)
+      real*8 ,intent(out):: v0(nvmax),vmin(nvmax),vmax(nvmax)
       nvar=isp2-isp1+1
       if(nvar .gt. nvmax)then
         irtc=itfmessage(9,'General::toomany','"variables"')
@@ -339,7 +346,7 @@ c      call tfdebugprint(kx,'evalres-2',1)
           go to 8900
         endif
         if(kli%nl .eq. 3)then
-          call tfeevalref(kli%dbody(3),k3,irtc)
+          k3=tfeevalref(kli%dbody(3),irtc)
           if(irtc .ne. 0)then
             go to 9000
           endif
@@ -371,7 +378,7 @@ c      call tfdebugprint(kx,'evalres-2',1)
 c        isp=isp+2
 c        ktastk(isp-1)=sad_loc(symd%sym%loc)
 c        ktastk(isp)=ig
-        call tfeevalref(kli%dbody(2),kv,irtc)
+        kv=tfeevalref(kli%dbody(2),irtc)
         if(irtc .ne. 0)then
           go to 9000
         endif
@@ -401,8 +408,11 @@ c      endif
       implicit none
       type (sad_dlist), pointer :: list,listi,liste
       type (sad_descriptor) kei
-      integer*8 kl,kae,ke
-      integer*4 irtc,neq,i,itfmessage
+      integer*8 ,intent(in):: kl
+      integer*8 ,intent(out):: ke
+      integer*8 kae
+      integer*4 ,intent(out):: neq,irtc
+      integer*4 i,itfmessage
       logical*4 eval
       if(ktfnonlistq(kl,list))then
         go to 9000
@@ -445,19 +455,21 @@ c      endif
       use iso_c_binding
       use gammaf
       implicit none
-      type (sad_descriptor) kx,ke
+      type (sad_descriptor) ,intent(out)::kx
+      integer*4 ,intent(in):: isp1
+      integer*4 ,intent(out):: irtc
+      type (sad_descriptor) ke
       type (sad_symbol), pointer :: sym
       type (sad_symdef), pointer :: symdv
       type (sad_dlist), pointer :: klr
-      integer*4 nvmax,maxi0,irtc
-      real*8 eps0
-      parameter (nvmax=1024,maxi0=40,eps0=1.d-9)
-      integer*4 isp1,nvar,i,maxi,ispv,isp2,n,m,iu,ig,itfmessage
+      integer*4 ,parameter ::nvmax=1024,maxi0=40
+      real*8 ,parameter:: eps0=1.d-9
+      integer*4 nvar,i,maxi,ispv,isp2,n,m,iu,ig,itfmessage
       type (symv) , allocatable::sav(:),sav0(:)
       integer*8 kdp,ktfmaloc
       type (sad_descriptor) kdl(nvmax),kdm,kcv,kci
       real*8 , allocatable::v0(:),vmin(:),vmax(:),v0s(:)
-      real*8 r,rfromk,vx,cut,cutoff
+      real*8 r,vx,cut,cutoff
       real*8 , pointer :: datap(:,:)
       logical*4 used
       type (sad_descriptor), save ::
@@ -516,7 +528,7 @@ c      endif
         endif
         if(ktfrealq(kx))then
           ispv=i-1
-          cutoff=abs(rfromk(kx%k))
+          cutoff=abs(kx%x(1))
           cycle
         endif
       enddo
@@ -599,23 +611,22 @@ c      endif
       end
 
       subroutine tfcovmat(c,ca,m,n,ndim)
-      use tfstk, only:ktfenanq,ktfnan
+      use tfstk, only:ktfenanq,rtfnan
       implicit none
-      integer*4 n,ndim,i,j,m
-      real*8 c(ndim,n),ca(n,n),s,rfromk
+      integer*4 ,intent(in):: n,ndim,m
+      integer*4 i,j
+      real*8 ,intent(in):: c(ndim,n)
+      real*8 ,intent(out):: ca(n,n)
+      real*8 s
       real*8, save:: rnan=0.d0
 c      write(*,*)'covmat ',n,m,ndim
       if(rnan .eq. 0.d0)then
-        rnan=rfromk(ktfnan)
+        rnan=rtfnan
       endif
       do i=1,n
         do j=1,i
           s=sum(c(1:m,i)*c(1:m,j))
-          if(ktfenanq(s))then
-            ca(i,j)=rnan
-          else
-            ca(i,j)=s
-          endif
+          ca(i,j)=merge(rnan,s,ktfenanq(s))
           ca(j,i)=ca(i,j)
         enddo
       enddo
@@ -628,21 +639,27 @@ c      write(*,*)'covmat ',n,m,ndim
       use findr
       use gammaf
       implicit none
-      type (sad_symdef) symdv
-      integer*4 n,m,nvar,irtc,maxi,iter,i,j
-      type (symv) sav(nvar)
-      type (sad_descriptor) kdm,kcv,kci,ke,kdl(nvar)
+      type (sad_symdef) ,intent(inout):: symdv
+      integer*4 ,intent(in):: n,m,nvar,maxi
+      integer*4 ,intent(out):: irtc
+      integer*4 iter,i,j
+      type (symv) ,intent(in):: sav(nvar)
+      type (sad_descriptor) ,intent(out):: kdm,kcv,kci
+      type (sad_descriptor) ,intent(in):: ke,kdl(nvar)
       type (sad_rlist) , pointer :: klci
-      integer*8 kaxvec,kfromr
-      real*8 data(n,m),v0(nvar)
+      integer*8 kaxvec
+      real*8 ,intent(in):: data(n,m)
+      real*8 ,intent(inout):: v0(nvar)
       real*8 , allocatable :: a0(:,:),a(:,:),abest(:,:),
      $     df(:),df0(:),v00(:),w(:),cv(:,:),vbest(:),dv(:),df2(:)
-      real*8 d00,d2,eps,svi,db,dbest,
-     $     fact,d0,d1,fact1,v(nvar),dg,d,fact2,tffsfmin,
+      real*8 ,intent(in):: eps,cut
+      real*8 ,intent(out):: d0
+      real*8 d00,d2,svi,db,dbest,
+     $     fact,d1,fact1,v(nvar),dg,d,fact2,tffsfmin,
      $     good,ajump,vmin(nvar),vmax(nvar),sigma
-      real*8 frac,factmin,svmin,factmin1,svdeps,cut,tinvgr,chin,x
-      parameter (frac=1.d-7,factmin=1.d-4,factmin1=1.d-4,
-     $     svmin=1.d-7,svdeps=1.d-4)
+      real*8 tinvgr,chin,x
+      real*8 ,parameter ::frac=1.d-7,factmin=1.d-4,factmin1=1.d-4,
+     $     svmin=1.d-7,svdeps=1.d-4
       logical*4 newton,acalc
       allocate (a0(m,nvar),a(m,nvar),abest(m,nvar),df(m),
      $     df0(m),v00(nvar),w(nvar),cv(nvar,nvar),
@@ -730,10 +747,6 @@ c            enddo
           call tsolva(a,df,dv,m,nvar,m,1.d-6)
         else
           do i=1,nvar
-c            s=0.d0
-c            do j=1,m
-c              s=s+df0(j)*a0(j,i)
-c            enddo
             dv(i)=-sum(df0(1:m)*a0(1:m,i))
           enddo
         endif
@@ -856,11 +869,7 @@ c          enddo
       chin=tinvgr(dble(nvar))
       do i=1,nvar
         x=sqrt(cv(i,i)*chin)
-        if(ktfrealq(kfromr(x)))then
-          klci%rbody(i)=x
-        else
-          klci%body(i)=ktfnan
-        endif
+        klci%rbody(i)=merge(x,rtfnan,ktfrealq(transfer(x,i00)))
       enddo
       deallocate(a0,a,abest,df,df0,v00,w,cv,vbest,dv,df2)
       return
@@ -870,15 +879,19 @@ c          enddo
      $     kaxvec,deriv,cutoff,irtc)
       use tfstk
       use findr
+      use eeval
       implicit none
-      type (sad_symdef) symdv
+      type (sad_symdef) ,intent(inout):: symdv
       type (sad_dlist), pointer :: klx,kl1
       type (sad_descriptor) k1,ke,kx
-      integer*4 n,m,nvar,irtc,i,itfuplevel,itfdownlevel,l,
-     $     itfmessage
+      integer*4 ,intent(out):: irtc
+      integer*4 ,intent(in):: n,m,nvar
+      integer*4 i,itfuplevel,itfdownlevel,l,itfmessage
       type (symv) sav(nvar)
       integer*8 kavvec,kaxvec
-      real*8 a(n,m),v(nvar),df(m),cutoff,r,vx,rfromk
+      real*8 ,intent(out):: df(m),r
+      real*8 ,intent(in):: a(n,m),v(nvar),cutoff
+      real*8 vx
       logical*4 deriv
       l=itfuplevel()
       do i=1,nvar
@@ -890,7 +903,7 @@ c          enddo
         rlist(kavvec+i)=a(1,i)
       enddo
 c     call tfdebugprint(ke,'ke',1)
-      call tfeevalref(ke,kx,irtc)
+      kx=tfeevalref(ke,irtc)
       call tflocal1(kaxvec)
       symdv%value%k=0
       if(irtc .ne. 0)then
@@ -903,11 +916,7 @@ c     call tfdebugprint(ke,'ke',1)
             if(deriv)then
               if(ktfnonreallistqo(kl1))then
                 do i=1,m
-                  if(ktfrealq(kl1%dbody(i)))then
-                    df(i)=kl1%rbody(i)
-                  else
-                    df(i)=0.d0
-                  endif
+                  df(i)=merge(kl1%rbody(i),0.d0,ktfrealq(kl1%dbody(i)))
                 enddo
               else
                 do i=1,m
@@ -917,11 +926,8 @@ c     call tfdebugprint(ke,'ke',1)
             else
               if(ktfnonreallistqo(kl1))then
                 do i=1,m
-                  if(ktfrealq(kl1%dbody(i)))then
-                    df(i)=kl1%rbody(i)-a(2,i)
-                  else
-                    df(i)=1.d300
-                  endif
+                  df(i)=merge(kl1%rbody(i)-a(2,i),1.d300,
+     $                 ktfrealq(kl1%dbody(i)))
                 enddo
               else
                 do i=1,m
@@ -933,29 +939,18 @@ c     call tfdebugprint(ke,'ke',1)
           endif
         endif
       elseif(ktfrealq(kx,vx))then
-        if(deriv)then
-          df=vx
-        else
-          df=vx-a(2,:)
-c          do i=1,m
-c            df(i)=vx-a(2,i)
-c          enddo
-        endif
+        df=merge(vx,vx-a(2,:),deriv)
         go to 1000
       endif
       do i=1,m
         symdv%value=dfromr(a(1,i))
-        call tfeevalref(ke,kx,irtc)
+        kx=tfeevalref(ke,irtc)
         if(irtc .ne. 0)then
           go to 9000
         endif
         if(ktfnonrealq(kx))then
           if(tfcomplexq(kx))then
-            if(deriv)then
-              df(i)=0.d0
-            else
-              df(i)=1.d300
-            endif
+            df(i)=merge(0.d0,1.d300,deriv)
           else
             if(deriv)then
               irtc=-1
@@ -967,26 +962,16 @@ c          enddo
             endif
           endif
         else
-          vx=rfromk(kx%k)
-          if(deriv)then
-            df(i)=vx
-          else
-            df(i)=vx-a(2,i)
-          endif
+          vx=kx%x(1)
+          df(i)=merge(vx,vx-a(2,i),deriv)
         endif
       enddo
  1000 r=0.d0
       if(deriv)then
         if(n .eq. 3)then
           df=df/a(3,:)
-c          do i=1,m
-c            df(i)=df(i)/a(3,i)
-c          enddo
         elseif(n .eq. 4)then
           df=df/a(4,:)
-c          do i=1,m
-c            df(i)=df(i)/a(4,i)
-c          enddo
         endif
       else
         if(cutoff .ne. 0.d0)then
@@ -1030,28 +1015,33 @@ c          enddo
       subroutine tfderiv(ke,nvar,sav,kdl,irtc)
       use tfstk
       use findr
+      use eeval
       implicit none
-      type (sad_descriptor) ke,kd,kr,kdl(nvar)
-      integer*4 nvar,irtc,i,isp0
-      type (symv) sav(nvar)
-      integer*8 ks,ierr0
+      type (sad_descriptor) ,intent(in):: ke
+      type (sad_descriptor) ,intent(out):: kdl(nvar)
+      type (sad_descriptor) kd,kr,ks
+      integer*4 ,intent(in):: nvar
+      integer*4 ,intent(out):: irtc
+      integer*4 i,isp0
+      type (symv) ,intent(in):: sav(nvar)
+      integer*8 ierr0
       logical*4 euv
-      integer*8 iads,iader
-      data iads,iader /0,0/
-      if(iads .eq. 0)then
-        iads=ktfsymbolz('System`D',8)
-        call tfsyeval(iads,ks,irtc)
+      type(sad_descriptor) ,save::iads,iader
+      data iads%k /0/
+      if(iads%k .eq. 0)then
+        iads=kxsymbolz('System`D',8)
+        ks=tfsyeval(iads,irtc)
         if(irtc .ne. 0)then
           return
         endif
-        iader=ktfsymbolz('CheckDerivative',15)
+        iader=kxsymbolz('CheckDerivative',15)
       endif
       do i=1,nvar
         sav(i)%p%value=sad_descr(sav(i)%p%sym)
       enddo
       isp0=isp
       isp=isp0+1
-      ktastk(isp)=ktfsymbol+iads
+      dtastk(isp)=iads
       do i=1,nvar
         isp=isp0+2
         dtastk(isp)=ke
@@ -1071,7 +1061,7 @@ c        call tfdebugprint(kd,'==>',2)
           go to 100
         endif
         isp=isp0+2
-        ktastk(isp)=ktfsymbol+iader
+        dtastk(isp)=iader
         isp=isp+1
         dtastk(isp)=dtfcopy(kd)
         ierr0=ierrorexp
@@ -1096,7 +1086,7 @@ c        call tfdebugprint(kd,'==>',2)
       return
       end
 
-      real*8 function tinvgr(an)
+      real*8 pure function tinvgr(an)
       use gammaf
       implicit none
       real*8 ,intent(in)::an
@@ -1124,6 +1114,9 @@ c        write(*,*)'tinvgr ',x0,dfdx,df
       use tfstk, only:mrs=>tfmakerulestk_dd,sad_descriptor
       implicit none
       type (sad_descriptor) ,intent(in)::k1,k2
+c      call tfdebugprint(k1,'mkrs',1)
+c      write(*,*)k2%k
+c      call tfdebugprint(k2,'mkrs_f',1)
       call mrs(k1,k2)
       return
       end
